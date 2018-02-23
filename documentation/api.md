@@ -116,7 +116,7 @@ The client __must__ submit a request body containing a JSON object with the foll
 {
     "password": String,
     "hardware_model": String,
-    "firmware_version": String,
+    "firmware_version": VersionNumber,
     "settings_key": String
 }
 ```
@@ -147,7 +147,7 @@ If the registration was successful, the Service __will__ respond with HTTP Statu
  
 If the request was not successful, the Service __may__ respond with:
 
- * `409 Conflict` with `Status` header equal to `DuplicateMacAddress`, if an accessory with that MAC address has already been registered.
+ * `409 Conflict` with `Status` header equal to `DuplicateEntity`, if an accessory with that MAC address has already been registered.
  
  
 #### Login
