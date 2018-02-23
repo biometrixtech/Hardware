@@ -101,3 +101,80 @@ Resources:
             WriteAttributes:
               - "custom:firmwareVersion"
               - "custom:ownerUUID"
+
+    ##########################################################################################################
+    ##  API GATEWAY
+    ##########################################################################################################
+
+    ApiGatewayLambdaExecutionRole:
+        Type: "AWS::IAM::Role"
+        Properties:
+            AssumeRolePolicyDocument:
+                Version: "2012-10-17"
+                Statement:
+                  - Effect: "Allow"
+                    Principal: { Service: [ "lambda.amazonaws.com" ] }
+                    Action: "sts:AssumeRole"
+            ManagedPolicyArns:
+              - "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
+              - "arn:aws:iam::aws:policy/AWSXrayWriteOnlyAccess"
+            Policies:
+              - PolicyName: "default"
+                PolicyDocument:
+                    Version: "2012-10-17"
+                    Statement:
+                      - Action:
+                          - "cognito-idp:AdminCreateUser"
+                          - "cognito-idp:AdminGetUser"
+                          - "cognito-idp:AdminInitiateAuth"
+                          - "cognito-idp:AdminRespondToAuthChallenge"
+                          - "cognito-idp:AdminUpdateUserAttributes"
+                        Effect: "Allow"
+                        Resource:
+                          - { "Fn::GetAtt": [ "CognitoUserPool", "Arn" ] }
+            RoleName: { "Fn::Sub": "hardware-${Environment}-apigateway-${AWS::Region}" }
+
+    ApiGatewayLambda:
+        Type: "AWS::Lambda::Function"
+        Properties:
+            Code:
+                S3Bucket: { "Fn::ImportValue": "InfrastructureBucketName" }
+                S3Key: { "Fn::Sub": "lambdas/hardware-${Environment}/apigateway.zip" }
+            Environment:
+                Variables:
+                    COGNITO_USER_POOL_ID: { Ref: "CognitoUserPool" }
+                    COGNITO_USER_POOL_CLIENT_ID: { Ref: "CognitoUserPoolClient" }
+                    ENVIRONMENT: { Ref: 'Environment' }
+            Handler: "apigateway.handler"
+            Runtime: "python3.6"
+            Timeout: "30"
+            Role: { "Fn::GetAtt" : [ "ApiGatewayLambdaExecutionRole", "Arn" ] }
+            FunctionName: { "Fn::Sub": "hardware-${Environment}-apigateway-execute" }
+            Tags:
+              - { Key: "Name", Value: { "Fn::Sub": "hardware-${Environment}-apigateway-execute" } }
+              - { Key: "Management", Value: "managed" }
+              - { Key: "Project", Value: "hardware" }
+              - { Key: "Environment", Value: { Ref: "Environment" } }
+              - { Key: "Service", Value: "apigateway" }
+            TracingConfig:
+                Mode: "Active"
+
+    ApigatewayStack:
+        Type: "AWS::CloudFormation::Stack"
+        Properties:
+            Parameters:
+                Project: "hardware"
+                Environment: { Ref: "Environment" }
+                Service: "apigateway"
+                LambdaArn: { "Fn::GetAtt": [ "ApiGatewayLambda", "Arn" ] }
+                CustomAuthLambdaArn: { "Fn::ImportValue": { "Fn::Sub": "users-${Environment}-CustomAuthLambdaArn" } }
+            Tags:
+              - { Key: "Name", Value: { "Fn::Sub": "hardware-${Environment}-apigateway" } }
+              - { Key: "Management", Value: "managed" }
+              - { Key: "Project", Value: "hardware" }
+              - { Key: "Environment", Value: { Ref: "Environment" } }
+              - { Key: "Service", Value: "apigateway" }
+            TemplateURL: { "Fn::Sub": [ "https://s3.amazonaws.com/${InfrastructureBucketName}/cloudformation/infrastructure-${Environment}/apigateway.yaml",
+                { InfrastructureBucketName: { "Fn::ImportValue": "InfrastructureBucketName" } }
+            ] }
+            TimeoutInMinutes: 30

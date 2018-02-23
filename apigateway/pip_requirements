@@ -1,0 +1,4 @@
+# Execute this with
+#     pip install -r ./pip_requirements -t .
+aws_xray_sdk==0.95
+flask-lambda==0.0.4

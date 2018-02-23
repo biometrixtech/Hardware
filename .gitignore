@@ -1,1 +1,5 @@
 *.zip
+
+apigateway/*
+!apigateway/*.py
+!apigateway/pip_requirements
