@@ -38,6 +38,7 @@ In addition to the AWS API Gateway responses and the specific responses for each
 The following simple types __may__ be used in responses:
 
 * `string`, `number`: as defined in the [JSON Schema](http://json-schema.org) standard.
+* `Uuid`: a `string` matching the regular expression `^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`, that is, the string representation of an [RFC 4122](https://tools.ietf.org/html/rfc4122) UUID.
 * `Datetime`: a `string` matching the regular expression `/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(Z|+\d{2}:\d{2})/` and representing a date and time in full [ISO 8601](https://www.iso.org/iso-8601-date-and-time-format.html) format.
 * `MacAddress`: a `string` matching the regular expression `/{[0-9a-f]{2}(:[0-9a-f]{2}){5}/`, that is six groups of two hexadecimal characters, separated by colons.
 * `VersionNumber`: a `string` matching the regular expression `/\d+\.\d+(\.\d+)?/`, that is a [Semantic Versioning](https://semver.org/) version number (in either `MAJOR.MINOR.PATCH` or `MAJOR.MINOR` format)
@@ -86,9 +87,8 @@ A `Firmware` object __must__ have the following schema:
 
 ```
 {
-	"firmware_id": Uuid,
-	"version": VersionNumber,
-	"device_type": string
+	"device_type": string,
+	"version": VersionNumber
 }
 ```
 
