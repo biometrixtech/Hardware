@@ -41,35 +41,35 @@ Resources:
                     RequireUppercase: false
             UserPoolName: { "Fn::Sub": "hardware-${Environment}-accessories" }
             Schema:
-              - Name: 'hardwareModel'
+              - Name: 'hardware_model'
                 AttributeDataType: 'String'
                 Mutable: true
                 Required: false
                 StringAttributeConstraints:
                     MinLength: '1'
                     MaxLength: '256'
-              - Name: 'macAddress'
+              - Name: 'mac_address'
                 AttributeDataType: 'String'
                 Mutable: false
                 Required: false
                 StringAttributeConstraints:
                     MinLength: '17'
                     MaxLength: '17'
-              - Name: 'firmwareVersion'
+              - Name: 'firmware_version'
                 AttributeDataType: 'String'
                 Mutable: true
                 Required: false
                 StringAttributeConstraints:
                     MinLength: '1'
                     MaxLength: '256'
-              - Name: 'settingsKey'
+              - Name: 'settings_key'
                 AttributeDataType: 'String'
                 Mutable: true
                 Required: false
                 StringAttributeConstraints:
                     MinLength: '1'
                     MaxLength: '256'
-              - Name: 'ownerUUID'
+              - Name: 'owner_uuid'
                 AttributeDataType: 'String'
                 Mutable: true
                 Required: false
@@ -91,16 +91,18 @@ Resources:
               - "ADMIN_NO_SRP_AUTH"
             GenerateSecret: false
             ReadAttributes:
-              - "custom:firmwareVersion"
-              - "custom:ownerUUID"
-              - "custom:hardwareModel"
-              - "custom:macAddress"
-              - "custom:settingsKey"
+              - "custom:bluetooth_name"
+              - "custom:firmware_version"
+              - "custom:hardware_model"
+              - "custom:mac_address"
+              - "custom:owner_uuid"
+              - "custom:settings_key"
             RefreshTokenValidity: 30
             UserPoolId: { Ref: "CognitoUserPool" }
             WriteAttributes:
-              - "custom:firmwareVersion"
-              - "custom:ownerUUID"
+              - "custom:firmware_version"
+              - "custom:owner_uuid"
+              - "custom:bluetooth_name"
 
     ##########################################################################################################
     ##  API GATEWAY

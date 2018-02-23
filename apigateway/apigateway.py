@@ -37,7 +37,7 @@ class ApplicationException(Exception):
 @app.route('/v1/accessory/<mac_address>/register', methods=['POST'])
 def handle_accessory_register(mac_address):
     print(request.json)
-    for key in ['password', 'hardwareModel', 'settingsKey', 'firmwareVersion']:
+    for key in ['password', 'hardware_model', 'settings_key', 'firmware_version']:
         if key not in request.json:
             raise ApplicationException(400, 'InvalidSchema', 'Missing required request parameters: {}'.format('key'))
     try:
@@ -46,11 +46,11 @@ def handle_accessory_register(mac_address):
             Username=mac_address,
             TemporaryPassword=request.json['password'],
             UserAttributes=[
-                {'Name': 'custom:hardwareModel', 'Value': request.json['hardwareModel']},
-                {'Name': 'custom:macAddress', 'Value': mac_address},
-                {'Name': 'custom:settingsKey', 'Value': request.json['settingsKey']},
-                {'Name': 'custom:firmwareVersion', 'Value': request.json['firmwareVersion']},
-                {'Name': 'custom:ownerUUID', 'Value': ''}
+                {'Name': 'custom:hardware_model', 'Value': request.json['hardware_model']},
+                {'Name': 'custom:mac_address', 'Value': mac_address},
+                {'Name': 'custom:settings_key', 'Value': request.json['settings_key']},
+                {'Name': 'custom:firmware_version', 'Value': request.json['firmware_version']},
+                {'Name': 'custom:owner_uuid', 'Value': ''}
             ],
             MessageAction='SUPPRESS',
         )
