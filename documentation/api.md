@@ -38,6 +38,8 @@ In addition to the AWS API Gateway responses and the specific responses for each
 The following simple types __may__ be used in responses:
 
 * `string`, `number`: as defined in the [JSON Schema](http://json-schema.org) standard.
+* `Datetime`: a `string` matching the regular expression `/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(Z|+\d{2}:\d{2})/` and representing a date and time in full [ISO 8601](https://www.iso.org/iso-8601-date-and-time-format.html) format.
+* `MacAddress`: a `string` matching the regular expression `/{[0-9a-f]{2}(:[0-9a-f]{2}){5}/`, that is six groups of two hexadecimal characters, separated by colons.
 
 ## Endpoints
 
@@ -91,3 +93,66 @@ If the registration was successful, the Service __will__ respond with HTTP Statu
 If the request was not successful, the Service __may__ respond with:
 
  * `419 Conflict` with `Status` header equal to `DuplicateMacAddress`, if an accessory with that MAC address has already been registered.
+ 
+ 
+#### Login
+
+This endpoint can be called by an accessory, once registered, to acquire credentials with which to access other endpoints.  The accessory __must__ have been registered via a call to [/accessory/{mac_address}/register](#Register) prior to requesting this endpoint.
+
+##### Query String
+ 
+The client __must__ submit a request to the endpoint `/accessory/{mac_address}/login`, where `mac_address` __must__ be a MacAddress. It __should__ correspond to the MAC Address of the accessory.  
+
+##### Request
+
+The client __must__ submit a request body containing a JSON object with the following schema:
+
+```
+{
+    "password": String
+}
+```
+
+* `password` __must__ be a string containing 8 or more characters, with no leading or trailing spaces.
+
+```
+POST /v1/accessory/1d:3a:42:5d:g5:ea/login HTTP/1.1
+Host: hardware.env.fathomai.com
+Content-Type: application/json
+Authorization: eyJraWQ...ajBc4VQ
+
+{
+    "password": "ffqkjhrqdkha2"
+}
+
+```
+
+##### Responses
+ 
+If the authentication was successful, the Service __will__ respond with HTTP Status `200 OK`, and with a body with the following syntax:
+ 
+```
+{
+    "authorization": {
+        "expires": String,
+        "jwt": String
+    },
+    "mac_address": MacAddress
+}
+```
+
+* `authorization.jwt` __will__ be a String forming a valid JWT Bearer Token.
+* `authorization.expires` __will__ be a Datetime, representing the time at which the JWT will expire.
+* `mac_address` __will__ be the same MacAddress as submitted in the request.
+
+Example response:
+
+```
+{
+    "authorization": {
+        "expires": "2018-02-19T18:31:19Z",
+        "jwt": "eyJraWQ...ajBc4VQ"
+    },
+    "mac_address": "1d:3a:42:5d:g5:ea"
+}
+```

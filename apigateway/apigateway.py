@@ -67,6 +67,42 @@ def handle_accessory_register(mac_address):
         raise
 
 
+@app.route('/v1/accessory/<mac_address>/login', methods=['POST'])
+def handle_accessory_login(mac_address):
+    for key in ['password']:
+        if key not in request.json:
+            raise ApplicationException(400, 'InvalidSchema', 'Missing required request parameters: {}'.format('key'))
+    response = cognito_client.admin_initiate_auth(
+        UserPoolId=os.environ['COGNITO_USER_POOL_ID'],
+        ClientId=os.environ['COGNITO_USER_POOL_CLIENT_ID'],
+        AuthFlow='ADMIN_NO_SRP_AUTH',
+        AuthParameters={
+            'USERNAME': mac_address,
+            'PASSWORD': request.json['password']
+        },
+    )
+    print(json.dumps(response))
+    if 'ChallengeName' in response and response['ChallengeName'] == "NEW_PASSWORD_REQUIRED":
+        # Need to set a new password
+        response = cognito_client.admin_respond_to_auth_challenge(
+            UserPoolId=os.environ['COGNITO_USER_POOL_ID'],
+            ClientId=os.environ['COGNITO_USER_POOL_CLIENT_ID'],
+            ChallengeName='NEW_PASSWORD_REQUIRED',
+            ChallengeResponses={'USERNAME': mac_address, 'NEW_PASSWORD': request.json['password']},
+            Session=response['Session']
+        )
+        print(json.dumps(response))
+
+    expiry_date = datetime.datetime.now() + datetime.timedelta(seconds=response['AuthenticationResult']['ExpiresIn'])
+    return json.dumps({
+        'username': mac_address,
+        'authorization': {
+            'jwt': response['AuthenticationResult']['AccessToken'],
+            'expires': expiry_date.strftime("%Y-%m-%dT%H:%M:%SZ")
+        }
+    }, default=json_serialise)
+
+
 @app.errorhandler(500)
 def handle_server_error(e):
     tb = sys.exc_info()[2]
