@@ -24,7 +24,7 @@ Metadata:
 Resources:
 
     ##########################################################################################################
-    ##  COGNITO
+    ##  ACCESSORY
     ##########################################################################################################
 
     CognitoUserPool:
@@ -76,6 +76,34 @@ Resources:
                 StringAttributeConstraints:
                     MinLength: '1'
                     MaxLength: '256'
+              - Name: 'bluetooth_name'
+                AttributeDataType: 'String'
+                Mutable: true
+                Required: false
+                StringAttributeConstraints:
+                    MinLength: '1'
+                    MaxLength: '256'
+              - Name: 'memory_level'
+                AttributeDataType: 'String'
+                Mutable: true
+                Required: false
+                StringAttributeConstraints:
+                    MinLength: '1'
+                    MaxLength: '256'
+              - Name: 'battery_level'
+                AttributeDataType: 'String'
+                Mutable: true
+                Required: false
+                StringAttributeConstraints:
+                    MinLength: '1'
+                    MaxLength: '256'
+              - Name: 'state'
+                AttributeDataType: 'String'
+                Mutable: true
+                Required: false
+                StringAttributeConstraints:
+                    MinLength: '1'
+                    MaxLength: '256'
             UserPoolTags:
               Name: { "Fn::Sub": "hardware-${Environment}-accessories" }
               Management: "managed"
@@ -91,18 +119,16 @@ Resources:
               - "ADMIN_NO_SRP_AUTH"
             GenerateSecret: false
             ReadAttributes:
+              - "custom:battery_level"
               - "custom:bluetooth_name"
               - "custom:firmware_version"
               - "custom:hardware_model"
               - "custom:mac_address"
+              - "custom:memory_level"
               - "custom:owner_uuid"
               - "custom:settings_key"
             RefreshTokenValidity: 30
             UserPoolId: { Ref: "CognitoUserPool" }
-            WriteAttributes:
-              - "custom:firmware_version"
-              - "custom:owner_uuid"
-              - "custom:bluetooth_name"
 
     ##########################################################################################################
     ##  API GATEWAY
@@ -132,8 +158,7 @@ Resources:
                           - "cognito-idp:AdminRespondToAuthChallenge"
                           - "cognito-idp:AdminUpdateUserAttributes"
                         Effect: "Allow"
-                        Resource:
-                          - { "Fn::GetAtt": [ "CognitoUserPool", "Arn" ] }
+                        Resource: { "Fn::GetAtt": [ "CognitoUserPool", "Arn" ] }
             RoleName: { "Fn::Sub": "hardware-${Environment}-apigateway-${AWS::Region}" }
 
     ApiGatewayLambda:

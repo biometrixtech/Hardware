@@ -1,0 +1,49 @@
+{
+    "$schema": "http://json-schema.org/schema#",
+    "id": "http://schema.fathomai.com/schemas/accessory.json",
+    "description": "Accessory",
+    "type": "object",
+    "properties": {
+        "mac_address": {
+            "description": "Mac Address of the accessory",
+            "type": "string",
+            "readonly": true
+        },
+        "state": {
+            "description": "Accessory state",
+            "type": "string"
+        },
+        "battery_level": {
+            "description": "Accessory remaining battery",
+            "type": ["number", "string"]
+        },
+        "memory_level": {
+            "description": "Accessory remaining memory",
+            "type": ["number", "string"]
+        },
+        "firmware_version": {
+            "description": "Accessory firmware version",
+            "type": "string"
+        },
+        "bluetooth_name": {
+            "description": "Accessory bluetooth name",
+            "type": "string"
+        },
+        "hardware_model": {
+            "description": "Accessory hardware model",
+            "type": "string",
+            "readonly": true
+        },
+        "settings_key": {
+            "description": "Accessory settings key",
+            "type": "string"
+        }
+    },
+    "required": [
+        "firmware_version",
+        "hardware_model",
+        "mac_address",
+        "settings_key"
+    ],
+    "additionalProperties": false
+}
