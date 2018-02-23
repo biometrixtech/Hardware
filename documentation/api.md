@@ -147,7 +147,7 @@ If the registration was successful, the Service __will__ respond with HTTP Statu
  
 If the request was not successful, the Service __may__ respond with:
 
- * `419 Conflict` with `Status` header equal to `DuplicateMacAddress`, if an accessory with that MAC address has already been registered.
+ * `409 Conflict` with `Status` header equal to `DuplicateMacAddress`, if an accessory with that MAC address has already been registered.
  
  
 #### Login

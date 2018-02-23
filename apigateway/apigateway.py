@@ -24,7 +24,7 @@ def handle_accessory_register(mac_address):
     print(request.json)
     accessory = Accessory(mac_address)
     accessory.create(request.json)
-    return '{"status": "success"}'
+    return '{"status": "success"}', 201
 
 
 @app.route('/v1/accessory/<mac_address>/login', methods=['POST'])
@@ -82,7 +82,7 @@ def handle_server_error(e):
 
 
 @app.errorhandler(404)
-def handle_unrecognised_endpoint(e):
+def handle_unrecognised_endpoint(_):
     return '{"message": You must specify an endpoint}', 404, {'Status': 'UnrecognisedEndpoint'}
 
 
@@ -94,6 +94,7 @@ def handle_application_exception(e):
 
 def handler(event, context):
     ret = app(event, context)
+    ret['headers']['Content-Type'] = 'application/json'
     # Round-trip through our JSON serialiser to make it parseable by AWS's
     return json.loads(json.dumps(ret, sort_keys=True, default=json_serialise))
 
