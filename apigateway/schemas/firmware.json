@@ -1,0 +1,26 @@
+{
+    "$schema": "http://json-schema.org/schema#",
+    "id": "http://schema.fathomai.com/schemas/accessory.json",
+    "description": "Accessory",
+    "type": "object",
+    "properties": {
+        "device_type": {
+            "description": "The type of hardware the firmware targets",
+            "type": { "enum": [ "accessory", "sensor" ] },
+            "readonly": true
+        },
+        "version": {
+            "description": "Firmware version number",
+            "type": "string"
+        },
+        "created_date": {
+            "description": "Release date for the firmware",
+            "type": "string"
+        }
+    },
+    "required": [
+        "device_type",
+        "version"
+    ],
+    "additionalProperties": false
+}

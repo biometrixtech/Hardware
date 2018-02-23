@@ -131,6 +131,24 @@ Resources:
             UserPoolId: { Ref: "CognitoUserPool" }
 
     ##########################################################################################################
+    ##  FIRMWARE
+    ##########################################################################################################
+
+    FirmwareTable:
+        Type: "AWS::DynamoDB::Table"
+        Properties:
+            TableName: { "Fn::Sub": "hardware-${Environment}-firmware" }
+            AttributeDefinitions:
+              - { AttributeName: "device_type", AttributeType: "S" }
+              - { AttributeName: "version", AttributeType: "S" }
+            KeySchema:
+              - { AttributeName: "device_type", KeyType: "HASH" }
+              - { AttributeName: "version", KeyType: "RANGE" }
+            ProvisionedThroughput:
+                ReadCapacityUnits: 1
+                WriteCapacityUnits: 1
+
+    ##########################################################################################################
     ##  API GATEWAY
     ##########################################################################################################
 
@@ -159,6 +177,12 @@ Resources:
                           - "cognito-idp:AdminUpdateUserAttributes"
                         Effect: "Allow"
                         Resource: { "Fn::GetAtt": [ "CognitoUserPool", "Arn" ] }
+
+                      - Action:
+                          - "dynamodb:GetItem"
+                          - "dynamodb:Query"
+                        Effect: "Allow"
+                        Resource: { "Fn::GetAtt": [ "FirmwareTable", "Arn" ] }
             RoleName: { "Fn::Sub": "hardware-${Environment}-apigateway-${AWS::Region}" }
 
     ApiGatewayLambda:
@@ -172,6 +196,7 @@ Resources:
                     COGNITO_USER_POOL_ID: { Ref: "CognitoUserPool" }
                     COGNITO_USER_POOL_CLIENT_ID: { Ref: "CognitoUserPoolClient" }
                     ENVIRONMENT: { Ref: 'Environment' }
+                    DYNAMODB_FIRMWARE_TABLE_NAME: { Ref: "FirmwareTable" }
             Handler: "apigateway.handler"
             Runtime: "python3.6"
             Timeout: "30"

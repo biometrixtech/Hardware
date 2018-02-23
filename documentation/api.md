@@ -40,6 +40,61 @@ The following simple types __may__ be used in responses:
 * `string`, `number`: as defined in the [JSON Schema](http://json-schema.org) standard.
 * `Datetime`: a `string` matching the regular expression `/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(Z|+\d{2}:\d{2})/` and representing a date and time in full [ISO 8601](https://www.iso.org/iso-8601-date-and-time-format.html) format.
 * `MacAddress`: a `string` matching the regular expression `/{[0-9a-f]{2}(:[0-9a-f]{2}){5}/`, that is six groups of two hexadecimal characters, separated by colons.
+* `VersionNumber`: a `string` matching the regular expression `/\d+\.\d+(\.\d+)?/`, that is a [Semantic Versioning](https://semver.org/) version number (in either `MAJOR.MINOR.PATCH` or `MAJOR.MINOR` format)
+
+### Accessory
+
+An `Accessory` object __must__ have the following schema:
+
+```
+{
+	"battery_level": Number,
+	"bluetooth_name": String,
+	"firmware_version": VersionNumber,
+	"mac_address": MacAddress,
+	"memory_level": Number,
+	"state": String
+}
+```
+
+The following constraints __will__ apply:
+
+* `battery_level` and `memory_level` __must__ be a number between 0 and 1 inclusive.
+
+### Sensor
+
+A `Sensor` object __must__ have the following schema:
+
+```
+{
+	"battery_level": Number,
+	"firmware_version": VersionNumber,
+	"gyro_offset": [ Number, Number, Number]
+	"mac_address": MacAddress,
+	"memory_level": Number,
+}
+```
+
+The following constraints __will__ apply:
+
+* `battery_level` and `memory_level` __must__ be a number between 0 and 1 inclusive.
+* `gyro_offset` __must__ be a list of exactly three Numbers.
+
+### Firmware
+
+A `Firmware` object __must__ have the following schema:
+
+```
+{
+	"firmware_id": Uuid,
+	"version": VersionNumber,
+	"device_type": string
+}
+```
+
+The following constraints __will__ apply:
+
+* `device_type` __will__ be one of the strings `accessory` or `sensor`.
 
 ## Endpoints
 
@@ -154,5 +209,139 @@ Example response:
         "jwt": "eyJraWQ...ajBc4VQ"
     },
     "mac_address": "1d:3a:42:5d:g5:ea"
+}
+```
+ 
+
+#### Sync
+
+This endpoint can be called by an accessory to record an update to its state.  The accessory __must__ have been registered via a call to [/accessory/{mac_address}/register](#Register) prior to requesting this endpoint.
+
+##### Query String
+ 
+The client __must__ submit a request to the endpoint `/accessory/{mac_address}/sync`, where `mac_address` __must__ be a MacAddress. It __should__ correspond to the MAC Address of the accessory.  
+
+##### Request
+
+The client __must__ submit a request body containing a JSON object with the following schema:
+
+```
+{
+    "event_date": Datetime,
+    "accessory": Accessory,
+    "sensors": [ Sensor, Sensor, Sensor ]
+}
+```
+
+The `sensors` field __should__ have exactly three elements.
+
+Example request:
+
+```
+POST /v1/accessory/1d:3a:42:5d:g5:ea/sync HTTP/1.1
+Host: hardware.env.fathomai.com
+Content-Type: application/json
+Authorization: eyJraWQ...ajBc4VQ
+
+{
+    "event_date": "2016-12-09T08:21:15.123+00:00",
+    "accessory": {
+      "state": "0x01",
+      "battery_level": 0.89,
+      "memory_level": 0.89,
+      "firmware_version": "2.3.2",
+      "bluetooth_name": "athl1"
+    },
+    "sensors": [
+    	{
+        	"id": "aa:bb:cc:dd:ee:ff",
+	        "battery_level": 0.57,
+	        "memory_level": 0.57,
+	        "firmware_version": "1.2",
+	        "gyro_offset": [
+	          0.572344,
+	          0.572344,
+	          0.572344
+	        ]
+    	},
+    	...
+    ]
+}
+```
+
+##### Responses
+ 
+If the request was successful, the Service __will__ respond with HTTP Status `200 OK`, and with a body with the following syntax:
+ 
+```
+{
+    "accessory": Accessory,
+    "sensor": Sensor,
+    "latest_firmware": {
+    	"accessory": Firmware,
+    	"sensor": Firmware
+	}
+}
+```
+
+Example response:
+
+```
+{
+    "accessory": {
+		"id":"1d:3a:42:5d:g5:ea",
+		"state":"0x01",
+		"battery_level":0.89,
+		"memory_level":0.89,
+		"firmware_version":"2.3.2",
+		"bluetooth_name":"athl1"
+    },
+    "sensors": [
+		{
+			"mac_address":"aa:bb:cc:dd:ee:ff",
+			"battery_level":0.57,
+			"memory_level":0.57,
+			"firmware_version":"1.2",
+			"gyro_offset":[
+				 0.572344,
+				 0.572344,
+				 0.572344
+			]
+		},
+		{
+			"mac_address":"aa:bb:cc:dd:ee:ff",
+			"battery_level":0.57,
+			"memory_level":0.57,
+			"firmware_version":"1.2",
+			"gyro_offset":[
+				 0.572344,
+				 0.572344,
+				 0.572344
+			]
+		},
+		{
+			"mac_address":"aa:bb:cc:dd:ee:ff",
+			"battery_level":0.57,
+			"memory_level":0.57,
+			"firmware_version":"1.2",
+			"gyro_offset":[
+				 0.572344,
+				 0.572344,
+				 0.572344
+			]
+		}
+    ],
+    "latest_firmware": {
+        "accessory": {
+            "device_type": "accessory",
+            "version": "1.1",
+            "created_date": "2018-02-23T19:34:00Z"
+        },
+        "sensor": {
+            "device_type": "sensor",
+            "version": "1.0",
+            "created_date": "2018-02-23T19:33:00Z"
+        }
+    }
 }
 ```
