@@ -1,0 +1,103 @@
+# A template that creates a Hardware service
+#
+# Copyright 2017 Melon Software Ltd (UK), all rights reserved.  Used under license.
+#
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Creates a Hardware service environment"
+
+Parameters:
+
+    Environment:
+        Type: "String"
+        Description: "The name of the environment"
+
+Metadata:
+    "AWS::CloudFormation::Interface":
+        ParameterGroups:
+          - Label: { default: "Definition" }
+            Parameters:
+              - "Environment"
+
+        ParameterLabels:
+            Environment: { default: "Environment" }
+
+Resources:
+
+    ##########################################################################################################
+    ##  COGNITO
+    ##########################################################################################################
+
+    CognitoUserPool:
+        Type: "AWS::Cognito::UserPool"
+        Properties:
+            AdminCreateUserConfig:
+                AllowAdminCreateUserOnly: false
+            Policies:
+                PasswordPolicy:
+                    MinimumLength: 8
+                    RequireLowercase: false
+                    RequireNumbers: false
+                    RequireSymbols: false
+                    RequireUppercase: false
+            UserPoolName: { "Fn::Sub": "hardware-${Environment}-accessories" }
+            Schema:
+              - Name: 'hardwareModel'
+                AttributeDataType: 'String'
+                Mutable: true
+                Required: false
+                StringAttributeConstraints:
+                    MinLength: '1'
+                    MaxLength: '256'
+              - Name: 'macAddress'
+                AttributeDataType: 'String'
+                Mutable: false
+                Required: false
+                StringAttributeConstraints:
+                    MinLength: '17'
+                    MaxLength: '17'
+              - Name: 'firmwareVersion'
+                AttributeDataType: 'String'
+                Mutable: true
+                Required: false
+                StringAttributeConstraints:
+                    MinLength: '1'
+                    MaxLength: '256'
+              - Name: 'settingsKey'
+                AttributeDataType: 'String'
+                Mutable: true
+                Required: false
+                StringAttributeConstraints:
+                    MinLength: '1'
+                    MaxLength: '256'
+              - Name: 'ownerUUID'
+                AttributeDataType: 'String'
+                Mutable: true
+                Required: false
+                StringAttributeConstraints:
+                    MinLength: '1'
+                    MaxLength: '256'
+            UserPoolTags:
+              Name: { "Fn::Sub": "hardware-${Environment}-accessories" }
+              Management: "managed"
+              Project: "hardware"
+              Environment: { Ref: "Environment" }
+              Service: "accessory"
+
+    CognitoUserPoolClient:
+        Type: "AWS::Cognito::UserPoolClient"
+        Properties:
+            ClientName: { "Fn::Sub": "hardware-${Environment}-login" }
+            ExplicitAuthFlows:
+              - "ADMIN_NO_SRP_AUTH"
+            GenerateSecret: false
+            ReadAttributes:
+              - "custom:firmwareVersion"
+              - "custom:ownerUUID"
+              - "custom:hardwareModel"
+              - "custom:macAddress"
+              - "custom:settingsKey"
+            RefreshTokenValidity: 30
+            UserPoolId: { Ref: "CognitoUserPool" }
+            WriteAttributes:
+              - "custom:firmwareVersion"
+              - "custom:ownerUUID"
