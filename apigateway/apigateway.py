@@ -1,8 +1,10 @@
-import datetime
 import boto3
 import json
 import os
 import sys
+import uuid
+
+import datetime
 
 from accessory import Accessory
 from firmware import Firmware
@@ -65,6 +67,16 @@ def handle_accessory_sync(mac_address):
         'sensor': Firmware('sensor', 'latest').get()
     }
     return json.dumps(res, default=json_serialise)
+
+
+@app.route('/v1/misc/uuid', methods=['GET'])
+def handle_misc_uuid():
+    return json.dumps({'uuids': [str(uuid.uuid4()) for _ in range(32)]})
+
+
+@app.route('/v1/misc/time', methods=['GET'])
+def handle_misc_time():
+    return json.dumps({'current_date': datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")})
 
 
 def _save_sync_record(mac_address, event_date, body):
