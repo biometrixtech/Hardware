@@ -345,6 +345,41 @@ Example response:
     }
 }
 ```
+ 
+### Firmware
+
+#### Latest
+
+This endpoint allows the client to determine the most recent available firmware.
+
+##### Query String
+
+The client __must__ submit a request to the endpoint `/firmware/{device_type}/latest`, where `device_type` __must__ be either the string `accessory` or `sensor`. The request method __must__ be `GET`.
+
+##### Request
+
+This method takes no request body.
+
+Example request:
+
+```
+GET /v1/firmware/accessory/latest HTTP/1.1
+Host: hardware.env.fathomai.com
+Content-Type: application/json
+Authorization: eyJraWQ...ajBc4VQ
+```
+
+##### Response
+
+The Service __will__ respond either with an HTTP status of `200 OK` and a body with the following syntax:
+
+```
+{
+    "firmware": Firmware
+}
+```
+
+or, with an HTTP status of `303 See Other`, and a `Location` header pointing to another resource which __will__ respond to the same request with a body matching the above schema.
 
 ### Miscellaneous
 

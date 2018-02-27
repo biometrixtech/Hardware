@@ -69,6 +69,12 @@ def handle_accessory_sync(mac_address):
     return json.dumps(res, default=json_serialise)
 
 
+@app.route('/v1/firmware/<device_type>/<version>', methods=['GET'])
+def handle_firmware_get(device_type, version):
+    res = {'firmware': Firmware(device_type, version).get()}
+    return json.dumps(res, default=json_serialise)
+
+
 @app.route('/v1/misc/uuid', methods=['GET'])
 def handle_misc_uuid():
     return json.dumps({'uuids': [str(uuid.uuid4()) for _ in range(32)]})
