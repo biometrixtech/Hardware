@@ -42,6 +42,9 @@ def handle_accessory_login(mac_address):
 def handle_accessory_sync(mac_address):
     res = {}
 
+    if 'event_date' not in request.json:
+        raise ApplicationException(400, 'InvalidSchema', 'Missing required request parameters: event_date')
+
     if 'accessory' not in request.json:
         raise ApplicationException(400, 'InvalidSchema', 'Missing required request parameters: accessory')
     accessory = Accessory(mac_address)
@@ -51,7 +54,11 @@ def handle_accessory_sync(mac_address):
         raise ApplicationException(400, 'InvalidSchema', 'Missing required request parameters: sensors')
     res['sensors'] = []
     for sensor in request.json['sensors']:
-        res['sensors'].append(_patch_sensor(mac_address, sensor, True))
+        # TODO work out how we're actually persisting this data
+        res['sensors'].append(sensor)
+
+    # Save the data in a time-rolling ddb log table
+    _save_sync_record(mac_address, request.json['event_date'], res)
 
     res['latest_firmware'] = {
         'accessory': Firmware('accessory', 'latest').get(),
@@ -60,19 +67,19 @@ def handle_accessory_sync(mac_address):
     return json.dumps(res, default=json_serialise)
 
 
-def _patch_sensor(mac_address, body, exists=None):
-    # TODO
-    return {
-        'mac_address': mac_address,
-        "battery_level": 0.57,
-        "memory_level": 0.57,
-        "firmware_version": "1.2",
-        "gyro_offset": [
-          0.572344,
-          0.572344,
-          0.572344
-        ]
+def _save_sync_record(mac_address, event_date, body):
+    item = {
+        'accessory_mac_address': mac_address,
+        'event_date': event_date,
     }
+    for k, v in body['accessory'].items():
+        item['accessory_{}'.format(k)] = v
+    for i in range(len(body['sensors'])):
+        for k, v in body['sensors'][i].items():
+            item['sensor{}_{}'.format(i + 1, k)] = v
+
+    dynamodb_resource = boto3.resource('dynamodb').Table(os.environ['DYNAMODB_ACCESSORYSYNCLOG_TABLE_NAME'])
+    dynamodb_resource.put_item(Item=item)
 
 
 @app.errorhandler(500)
@@ -83,7 +90,7 @@ def handle_server_error(e):
 
 @app.errorhandler(404)
 def handle_unrecognised_endpoint(_):
-    return '{"message": You must specify an endpoint}', 404, {'Status': 'UnrecognisedEndpoint'}
+    return '{"message": "You must specify an endpoint"}', 404, {'Status': 'UnrecognisedEndpoint'}
 
 
 @app.errorhandler(ApplicationException)

@@ -130,6 +130,20 @@ Resources:
             RefreshTokenValidity: 30
             UserPoolId: { Ref: "CognitoUserPool" }
 
+    AccessorySyncLogTable:
+        Type: "AWS::DynamoDB::Table"
+        Properties:
+            TableName: { "Fn::Sub": "hardware-${Environment}-accessorysynclog" }
+            AttributeDefinitions:
+              - { AttributeName: "accessory_mac_address", AttributeType: "S" }
+              - { AttributeName: "event_date", AttributeType: "S" }
+            KeySchema:
+              - { AttributeName: "accessory_mac_address", KeyType: "HASH" }
+              - { AttributeName: "event_date", KeyType: "RANGE" }
+            ProvisionedThroughput:
+                ReadCapacityUnits: 1
+                WriteCapacityUnits: 1
+
     ##########################################################################################################
     ##  FIRMWARE
     ##########################################################################################################
@@ -180,9 +194,18 @@ Resources:
 
                       - Action:
                           - "dynamodb:GetItem"
+                          - "dynamodb:PutItem"
                           - "dynamodb:Query"
+                          - "dynamodb:UpdateItem"
                         Effect: "Allow"
-                        Resource: { "Fn::GetAtt": [ "FirmwareTable", "Arn" ] }
+                        Resource:
+                          - { "Fn::GetAtt": [ "FirmwareTable", "Arn" ] }
+                          - { "Fn::GetAtt": [ "AccessorySyncLogTable", "Arn" ] }
+
+                      - Action:
+                          - "s3:PutItem"
+                        Effect: "Allow"
+                        Resource: { "Fn::Sub": "biometrix-preprocessing-${Environment}-${AWS::Region}/*" }
             RoleName: { "Fn::Sub": "hardware-${Environment}-apigateway-${AWS::Region}" }
 
     ApiGatewayLambda:
@@ -197,6 +220,7 @@ Resources:
                     COGNITO_USER_POOL_CLIENT_ID: { Ref: "CognitoUserPoolClient" }
                     ENVIRONMENT: { Ref: 'Environment' }
                     DYNAMODB_FIRMWARE_TABLE_NAME: { Ref: "FirmwareTable" }
+                    DYNAMODB_ACCESSORYSYNCLOG_TABLE_NAME: { Ref: "AccessorySyncLogTable" }
             Handler: "apigateway.handler"
             Runtime: "python3.6"
             Timeout: "30"
