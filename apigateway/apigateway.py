@@ -21,6 +21,7 @@ app = FlaskLambda(__name__)
 
 
 @app.route('/v1/accessory/<mac_address>/register', methods=['POST'])
+@app.route('/hardware/accessory/<mac_address>/register', methods=['POST'])
 def handle_accessory_register(mac_address):
     print(request.json)
     accessory = Accessory(mac_address)
@@ -29,6 +30,7 @@ def handle_accessory_register(mac_address):
 
 
 @app.route('/v1/accessory/<mac_address>/login', methods=['POST'])
+@app.route('/hardware/accessory/<mac_address>/login', methods=['POST'])
 def handle_accessory_login(mac_address):
     if 'password' not in request.json:
         raise InvalidSchemaException('Missing required request parameters: password')
@@ -40,6 +42,7 @@ def handle_accessory_login(mac_address):
 
 
 @app.route('/v1/accessory/<mac_address>/sync', methods=['POST'])
+@app.route('/hardware/accessory/<mac_address>/sync', methods=['POST'])
 def handle_accessory_sync(mac_address):
     res = {}
 
@@ -69,6 +72,7 @@ def handle_accessory_sync(mac_address):
 
 
 @app.route('/v1/sensor/<mac_address>', methods=['PATCH'])
+@app.route('/hardware/sensor/<mac_address>', methods=['PATCH'])
 def handle_sensor_patch(mac_address):
     sensor = Sensor(mac_address)
     if not sensor.exists():
@@ -79,17 +83,20 @@ def handle_sensor_patch(mac_address):
 
 
 @app.route('/v1/firmware/<device_type>/<version>', methods=['GET'])
+@app.route('/hardware/firmware/<device_type>/<version>', methods=['GET'])
 def handle_firmware_get(device_type, version):
     res = {'firmware': Firmware(device_type, version).get()}
     return json.dumps(res, default=json_serialise)
 
 
 @app.route('/v1/misc/uuid', methods=['GET'])
+@app.route('/hardware/misc/uuid', methods=['GET'])
 def handle_misc_uuid():
     return json.dumps({'uuids': [str(uuid.uuid4()) for _ in range(32)]})
 
 
 @app.route('/v1/misc/time', methods=['GET'])
+@app.route('/hardware/misc/time', methods=['GET'])
 def handle_misc_time():
     return json.dumps({'current_date': datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")})
 
