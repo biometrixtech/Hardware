@@ -205,7 +205,7 @@ Resources:
                       - Action:
                           - "s3:PutItem"
                         Effect: "Allow"
-                        Resource: { "Fn::Sub": "biometrix-preprocessing-${Environment}-${AWS::Region}/*" }
+                        Resource: { "Fn::Sub": "arn:aws:s3:::biometrix-preprocessing-${Environment}-${AWS::Region}/*" }
             RoleName: { "Fn::Sub": "hardware-${Environment}-apigateway-${AWS::Region}" }
 
     ApiGatewayLambda:
@@ -219,8 +219,10 @@ Resources:
                     COGNITO_USER_POOL_ID: { Ref: "CognitoUserPool" }
                     COGNITO_USER_POOL_CLIENT_ID: { Ref: "CognitoUserPoolClient" }
                     ENVIRONMENT: { Ref: 'Environment' }
+                    AWS_ACCOUNT_ID: { Ref: "AWS::AccountId" }
                     DYNAMODB_FIRMWARE_TABLE_NAME: { Ref: "FirmwareTable" }
                     DYNAMODB_ACCESSORYSYNCLOG_TABLE_NAME: { Ref: "AccessorySyncLogTable" }
+                    S3_INGEST_BUCKET_NAME: { "Fn::Sub": "biometrix-preprocessing-${Environment}-${AWS::Region}" }
             Handler: "apigateway.handler"
             Runtime: "python3.6"
             Timeout: "30"
