@@ -1,0 +1,51 @@
+{
+    "$schema": "http://json-schema.org/schema#",
+    "id": "http://schema.fathomai.com/schemas/sensor.json",
+    "description": "Sensor",
+    "type": "object",
+    "properties": {
+        "mac_address": {
+            "description": "Mac Address of the sensor",
+            "type": "string",
+            "readonly": true
+        },
+        "battery_level": {
+            "description": "Sensor remaining battery",
+            "type": ["number", "string"]
+        },
+        "memory_level": {
+            "description": "Sensor remaining memory",
+            "type": ["number", "string"]
+        },
+        "firmware_version": {
+            "description": "Sensor firmware version",
+            "type": "string"
+        },
+        "hardware_model": {
+            "description": "Sensor hardware model",
+            "type": "string",
+            "readonly": true
+        },
+        "created_date": {
+            "description": "Date the sensor was registered with the cloud",
+            "type": "string",
+            "readonly": true
+        },
+        "updated_date": {
+            "description": "Date the sensor was last updated",
+            "type": "string"
+        },
+        "last_user_id": {
+            "description": "Last user ID associated with the sensor",
+            "type": "string"
+        }
+    },
+    "required": [
+        "firmware_version",
+        "hardware_model",
+        "mac_address",
+        "settings_key",
+        "created_date"
+    ],
+    "additionalProperties": false
+}

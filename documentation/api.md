@@ -346,6 +346,58 @@ Example response:
 }
 ```
  
+ 
+### Sensor
+
+#### Update
+
+This endpoint can be called to register a new sensor, or update an existing one.
+
+##### Query String
+ 
+The client __must__ submit a request to the endpoint `/sensor/{mac_address}`, where `mac_address` __must__ be a MacAddress. It __should__ correspond to the MAC Address of the sensor.  The HTTP method __must__ be `PATCH`.  The `Content-Type` header __should__ be `application/merge-patch+json`, as the request complies with [RFC 7396](https://tools.ietf.org/html/rfc7396).
+
+##### Request
+
+The client __must__ submit a request body containing a JSON object with the following schema:
+
+```
+{
+    "last_user_id": Uuid,
+    "firmware_version": VersionNumber,
+    "memory_level": Number,
+    "battery_level": Number
+}
+```
+
+With the following constraints:
+
+* `battery_level` and `memory_level` __must__ be a number between 0 and 1 inclusive.
+* The client __may__ not include all of the above fields in the request, but __should__ include at least one.
+
+```
+PATCH /v1/sensor/1d:3a:42:5d:g5:ea HTTP/1.1
+Host: hardware.env.fathomai.com
+Content-Type: application/merge-patch+json
+Authorization: ...
+
+{
+  "last_user_id": "4811e0fa-aa9d-4f61-af2d-28064c7a1011",
+  "firmware_version": "1.2",
+  "memory_level": 0.2
+}
+
+```
+
+##### Responses
+ 
+If the registration was successful, the Service __will__ respond with HTTP Status `201 Created`.
+ 
+If the request was not successful, the Service __may__ respond with:
+
+ * `409 Conflict` with `Status` header equal to `DuplicateEntity`, if an accessory with that MAC address has already been registered.
+
+
 ### Firmware
 
 #### Latest

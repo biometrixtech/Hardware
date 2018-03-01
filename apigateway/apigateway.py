@@ -1,19 +1,18 @@
+from aws_xray_sdk.core import xray_recorder, patch_all
 import boto3
+import datetime
 import json
 import os
 import sys
 import uuid
 
-import datetime
-
 from accessory import Accessory
+from exceptions import ApplicationException, InvalidSchemaException, NoSuchEntityException
 from firmware import Firmware
 from flask import request
 from flask_lambda import FlaskLambda
+from sensor import Sensor
 from serialisable import json_serialise
-from aws_xray_sdk.core import xray_recorder, patch_all
-
-from exceptions import ApplicationException, InvalidSchemaException
 
 patch_all()
 
@@ -69,6 +68,16 @@ def handle_accessory_sync(mac_address):
     return json.dumps(res, default=json_serialise)
 
 
+@app.route('/v1/sensor/<mac_address>', methods=['PATCH'])
+def handle_sensor_patch(mac_address):
+    sensor = Sensor(mac_address)
+    if not sensor.exists():
+        ret = sensor.create(request.json)
+    else:
+        ret = sensor.patch(request.json)
+    return json.dumps({'sensor': ret}, default=json_serialise)
+
+
 @app.route('/v1/firmware/<device_type>/<version>', methods=['GET'])
 def handle_firmware_get(device_type, version):
     res = {'firmware': Firmware(device_type, version).get()}
@@ -118,6 +127,7 @@ def handle_application_exception(e):
 
 
 def handler(event, context):
+    print(json.dumps(event))
     ret = app(event, context)
     ret['headers']['Content-Type'] = 'application/json'
     # Round-trip through our JSON serialiser to make it parseable by AWS's
