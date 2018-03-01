@@ -13,7 +13,7 @@ cognito_client = boto3.client('cognito-idp')
 class Accessory(Entity):
     def __init__(self, mac_address):
         self._mac_address = mac_address.upper()
-        self._exists = None
+        super().__init__({'mac_address': self._mac_address})
 
     @staticmethod
     def schema():
@@ -33,23 +33,13 @@ class Accessory(Entity):
 
         custom_properties = {prop['Name'].split(':')[-1]: prop['Value'] for prop in res['UserAttributes']}
 
-        ret = {'mac_address': self._mac_address}
+        ret = self.primary_key
         for key in self._get_mutable_fields() + self._get_immutable_fields():
             if key in custom_properties:
                 ret[key] = custom_properties[key]
             else:
                 ret[key] = self.schema()['properties'][key].get('default', None)
         return ret
-
-    @property
-    def exists(self):
-        if self._exists is None:
-            try:
-                self.get()
-                self._exists = True
-            except NoSuchEntityException:
-                self._exists = False
-        return self._exists
 
     def patch(self, body):
         attributes = [
@@ -58,7 +48,7 @@ class Accessory(Entity):
             if key in body
         ]
 
-        if self.exists:
+        if self.exists():
             cognito_client.admin_update_user_attributes(
                 UserPoolId=os.environ['COGNITO_USER_POOL_ID'],
                 Username=self._mac_address,
