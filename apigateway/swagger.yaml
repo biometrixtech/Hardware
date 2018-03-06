@@ -1,0 +1,151 @@
+openapi: '3.0.0'
+servers:
+  - url: 'https://hardware.{env}.fathomai.com/v1'
+    variables:
+        env:
+          description: 'Environment'
+          default: dev
+          enum:
+            - dev
+            - qa
+            - production
+  - url: 'https://apis.{env}.fathomai.com/hardware'
+    description: ''
+    variables:
+        env:
+          description: 'Environment'
+          default: dev
+          enum:
+            - dev
+            - qa
+            - production
+info:
+    description: 'This API provides access to the Hardware service, which manages the physical hardware involved with a Fathom deployment.'
+    version: '0.0.4'
+    title: 'Biometrix Hardware API'
+    contact:
+        email: 'stephen.poole@biometrixtech.com'
+        name: 'Stephen Poole'
+tags:
+  - name: accessory
+    description: 'Accessory operations'
+paths:
+    '/accessory/{mac_address}':
+        post:
+            summary: 'Register a new accessory'
+            description: ''
+            parameters:
+              - name: 'mac_address'
+                in: path
+                required: true
+                schema:
+                    $ref: '#/components/schemas/MacAddress'
+            requestBody:
+                description: 'An accessory to register'
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/Accessory'
+            responses:
+                '201':
+                    $ref: '#/components/responses/AccessoryResponse'
+                '409':
+                    description: 'An accessory with that MAC address has already been registered'
+            security: []
+            tags:
+              - accessory
+components:
+    schemas:
+        MacAddress:
+            description: "MAC Address"
+            type: "string"
+            pattern: '^{[0-9a-f]{2}(:[0-9a-f]{2}){5}$'
+            example: '12:34:56:78:90:AB'
+        VersionNumber:
+            description: "Semantic Versioning version number"
+            type: "string"
+            pattern: '^\d+\.\d+(\.\d+)?$'
+            example: "10.1.2"
+        Accessory:
+            description: "Accessory"
+            type: "object"
+            properties:
+                mac_address:
+                    $ref: '#/components/schemas/MacAddress'
+                state:
+                    description: "Accessory state"
+                    type: "string"
+                battery_level:
+                    description: "Accessory remaining battery"
+                    type: "number"
+                memory_level:
+                    description: "Accessory remaining memory"
+                    type: "number"
+                firmware_version:
+                    $ref: '#/components/schemas/VersionNumber'
+                bluetooth_name:
+                    description: "Accessory bluetooth name"
+                    type: "string"
+                hardware_model:
+                    description: "Accessory hardware model"
+                    type: "string"
+                settings_key:
+                    description: "Accessory settings key"
+                    type: "string"
+            required:
+              - "firmware_version"
+              - "hardware_model"
+              - "mac_address"
+              - "settings_key"
+            additionalProperties: false
+        Sensor:
+            description: "Sensor"
+            type: "object"
+            properties:
+                mac_address:
+                    $ref: '#/components/schemas/MacAddress'
+                state:
+                    description: "Accessory state"
+                    type: "string"
+                battery_level:
+                    description: "Accessory remaining battery"
+                    type: "number"
+                memory_level:
+                    description: "Accessory remaining memory"
+                    type: "number"
+                firmware_version:
+                    $ref: '#/components/schemas/VersionNumber'
+                bluetooth_name:
+                    description: "Accessory bluetooth name"
+                    type: "string"
+                hardware_model:
+                    description: "Accessory hardware model"
+                    type: "string"
+                settings_key:
+                    description: "Accessory settings key"
+                    type: "string"
+            required:
+              - "firmware_version"
+              - "hardware_model"
+              - "mac_address"
+              - "settings_key"
+            additionalProperties: false
+    requestBodies:
+        Accessory:
+            content:
+                application/json:
+                    schema:
+                        $ref: '#/components/schemas/Accessory'
+            description: 'An Accessory object'
+            required: true
+    responses:
+        AccessoryResponse:
+            content:
+                application/json:
+                    schema:
+                        type: "object"
+                        properties:
+                            accessory:
+                                $ref: '#/components/schemas/Accessory'
+            description: 'The Accessory object'
