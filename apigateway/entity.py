@@ -41,7 +41,7 @@ class Entity:
         if operation == 'PATCH':
             # Not allowed to modify readonly attributes for PATCH
             for key in self._get_immutable_fields():
-                if key in body:
+                if key in body and key not in self.primary_key.keys():
                     raise InvalidSchemaException('Cannot modify value of immutable parameter: {}'.format(key))
 
         else:
