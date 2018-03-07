@@ -483,41 +483,6 @@ or, with an HTTP status of `303 See Other`, and a `Location` header pointing to 
 
 ### Miscellaneous
 
-These endpoints provide miscellaneous utilities for clients.
-
-#### Uuid Bank
-
-This endpoint generates Uuids which may be used by clients for identifying entities.
-
-##### Query String
-
-The client __must__ submit a request to the endpoint `/misc/uuids`.
-
-##### Request
-
-This method takes no request body.
-
-Example request:
-
-```
-GET /v1/misc/uuids HTTP/1.1
-Host: hardware.env.fathomai.com
-Content-Type: application/json
-Authorization: eyJraWQ...ajBc4VQ
-```
-
-##### Response
-
-The Service __will__ respond with an HTTP status of `200 OK` and a body with the following syntax:
-
-```
-{
-    "uuids": [ Uuid, ... ]
-}
-```
-
-The `uuids` list __will__ contain at least one entry.
-
 #### Current time
 
 This endpoint returns the current time.
