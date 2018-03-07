@@ -4,6 +4,7 @@ import datetime
 import json
 import os
 import sys
+import traceback
 import uuid
 
 from accessory import Accessory
@@ -129,7 +130,7 @@ def handle_unrecognised_endpoint(_):
 
 @app.errorhandler(ApplicationException)
 def handle_application_exception(e):
-    print('appexc')
+    traceback.print_exception(*sys.exc_info())
     return json.dumps({'message': e.message}, default=json_serialise), e.status_code, {'Status': e.status_code_text}
 
 
