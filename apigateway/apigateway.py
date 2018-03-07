@@ -75,12 +75,26 @@ def handle_accessory_sync(mac_address):
 @app.route('/v1/sensor/<mac_address>', methods=['PATCH'])
 @app.route('/hardware/sensor/<mac_address>', methods=['PATCH'])
 def handle_sensor_patch(mac_address):
+    ret = _patch_sensor(mac_address, request.json)
+    return json.dumps({'sensor': ret}, default=json_serialise)
+
+
+@app.route('/v1/sensor', methods=['PATCH'])
+@app.route('/hardware/sensor', methods=['PATCH'])
+def handle_sensor_patch():
+    if 'sensors' not in request.json or not isinstance(request.json['sensors'], list):
+        raise InvalidSchemaException('Missing required parameter sensors')
+    ret = [_patch_sensor(s['mac_address'], s) for s in request.json['sensors']]
+    return json.dumps({'sensors': ret}, default=json_serialise)
+
+
+def _patch_sensor(mac_address, body):
     sensor = Sensor(mac_address)
     if not sensor.exists():
-        ret = sensor.create(request.json)
+        ret = sensor.create(body)
     else:
-        ret = sensor.patch(request.json)
-    return json.dumps({'sensor': ret}, default=json_serialise)
+        ret = sensor.patch(body)
+    return ret
 
 
 @app.route('/v1/firmware/<device_type>/<version>', methods=['GET'])

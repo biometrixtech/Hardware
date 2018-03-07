@@ -349,7 +349,7 @@ Example response:
  
 ### Sensor
 
-#### Update
+#### Patch
 
 This endpoint can be called to register a new sensor, or update an existing one.
 
@@ -362,12 +362,7 @@ The client __must__ submit a request to the endpoint `/sensor/{mac_address}`, wh
 The client __must__ submit a request body containing a JSON object with the following schema:
 
 ```
-{
-    "last_user_id": Uuid,
-    "firmware_version": VersionNumber,
-    "memory_level": Number,
-    "battery_level": Number
-}
+Sensor
 ```
 
 With the following constraints:
@@ -382,7 +377,7 @@ Content-Type: application/merge-patch+json
 Authorization: ...
 
 {
-  "last_user_id": "4811e0fa-aa9d-4f61-af2d-28064c7a1011",
+  "mac_address": "1d:3a:42:5d:g5:ea",
   "firmware_version": "1.2",
   "memory_level": 0.2
 }
@@ -390,12 +385,65 @@ Authorization: ...
 ```
 
 ##### Responses
- 
-If the registration was successful, the Service __will__ respond with HTTP Status `201 Created`.
- 
+
+If the request was successful, the Service __will__ respond with HTTP Status `200 Updated` or `201 Created`.
+
 If the request was not successful, the Service __may__ respond with:
 
- * `409 Conflict` with `Status` header equal to `DuplicateEntity`, if an accessory with that MAC address has already been registered.
+ * `409 Conflict` with `Status` header equal to `DuplicateEntity`, if a sensor with that MAC address has already been registered.
+
+
+#### Multi-Patch
+
+This endpoint can be called to register or update multiple sensors.
+
+##### Query String
+ 
+The client __must__ submit a request to the endpoint `/sensor`.  The `Content-Type` header __should__ be `application/merge-patch+json`, as the request complies with [RFC 7396](https://tools.ietf.org/html/rfc7396).
+
+##### Request
+
+The client __must__ submit a request body containing a JSON object with the following schema:
+
+```
+{
+	"sensors": [
+		Sensor,
+		...
+	]
+}
+```
+
+The `sensors` field __should__ contain at least one element.
+
+```
+PATCH /hardware/sensor HTTP/1.1
+Host: apis.env.fathomai.com
+Content-Type: application/merge-patch+json
+Authorization: ...
+
+{
+	"sensors": [
+		{
+			"mac_address": "AB:CD:EF:12:34:56",
+			"firmware_version": "1.2"
+		},
+		{
+			"mac_address": "65:43:21:FE:DC:BA",
+			"firmware_version": "1.4"
+		}
+	]
+}
+
+```
+
+##### Responses
+
+If the request was successful, the Service __will__ respond with HTTP Status `200 Updated` or `201 Created`.
+
+If the request was not successful, the Service __may__ respond with:
+
+ * `409 Conflict` with `Status` header equal to `DuplicateEntity`, if a sensor with that MAC address has already been registered.
 
 
 ### Firmware
