@@ -127,8 +127,8 @@ The client __must__ submit a request body containing a JSON object with the foll
 * `settings_key` __must__ be a string of between 1 and 256 characters.
 
 ```
-POST /v1/accessory/1d:3a:42:5d:g5:ea/register HTTP/1.1
-Host: hardware.env.fathomai.com
+POST /hardware/accessory/1d:3a:42:5d:g5:ea/register HTTP/1.1
+Host: apis.env.fathomai.com
 Content-Type: application/json
 Authorization: ...
 
@@ -171,8 +171,8 @@ The client __must__ submit a request body containing a JSON object with the foll
 * `password` __must__ be a string containing 8 or more characters, with no leading or trailing spaces.
 
 ```
-POST /v1/accessory/1d:3a:42:5d:g5:ea/login HTTP/1.1
-Host: hardware.env.fathomai.com
+POST /hardware/accessory/1d:3a:42:5d:g5:ea/login HTTP/1.1
+Host: apis.env.fathomai.com
 Content-Type: application/json
 Authorization: eyJraWQ...ajBc4VQ
 
@@ -238,8 +238,8 @@ The `sensors` field __should__ have exactly three elements.
 Example request:
 
 ```
-POST /v1/accessory/1d:3a:42:5d:g5:ea/sync HTTP/1.1
-Host: hardware.env.fathomai.com
+POST /hardware/accessory/1d:3a:42:5d:g5:ea/sync HTTP/1.1
+Host: apis.env.fathomai.com
 Content-Type: application/json
 Authorization: eyJraWQ...ajBc4VQ
 
@@ -371,8 +371,8 @@ With the following constraints:
 * The client __may__ not include all of the above fields in the request, but __should__ include at least one.
 
 ```
-PATCH /v1/sensor/1d:3a:42:5d:g5:ea HTTP/1.1
-Host: hardware.env.fathomai.com
+PATCH /hardware/sensor/1d:3a:42:5d:g5:ea HTTP/1.1
+Host: apis.env.fathomai.com
 Content-Type: application/merge-patch+json
 Authorization: ...
 
@@ -463,8 +463,8 @@ This method takes no request body.
 Example request:
 
 ```
-GET /v1/firmware/accessory/latest HTTP/1.1
-Host: hardware.env.fathomai.com
+GET /hardware/firmware/accessory/latest HTTP/1.1
+Host: apis.env.fathomai.com
 Content-Type: application/json
 Authorization: eyJraWQ...ajBc4VQ
 ```
@@ -498,8 +498,8 @@ This method takes no request body.
 Example request:
 
 ```
-GET /v1/misc/time HTTP/1.1
-Host: hardware.env.fathomai.com
+GET /hardware/misc/time HTTP/1.1
+Host: apis.env.fathomai.com
 Content-Type: application/json
 Authorization: eyJraWQ...ajBc4VQ
 ```
