@@ -37,6 +37,10 @@
         "settings_key": {
             "description": "Accessory settings key",
             "type": "string"
+        },
+        "owner_id": {
+            "description": "Current owner",
+            "type": "string"
         }
     },
     "required": [

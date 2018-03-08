@@ -35,7 +35,6 @@ app.response_class = ApiResponse
 @app.route('/v1/accessory/<mac_address>/register', methods=['POST'])
 @app.route('/hardware/accessory/<mac_address>/register', methods=['POST'])
 def handle_accessory_register(mac_address):
-    print(request.json)
     accessory = Accessory(mac_address)
     accessory.create(request.json)
     return {"status": "success"}, 201
@@ -46,6 +45,17 @@ def handle_accessory_register(mac_address):
 def handle_accessory_get(mac_address):
     accessory = Accessory(mac_address).get()
     return {'accessory': accessory}
+
+
+@app.route('/v1/accessory/<mac_address>', methods=['PATCH'])
+@app.route('/hardware/accessory/<mac_address>', methods=['PATCH'])
+def handle_accessory_patch(mac_address):
+    accessory = Accessory(mac_address)
+    if not accessory.exists():
+        ret = accessory.create(request.json)
+    else:
+        ret = accessory.patch(request.json)
+    return ret
 
 
 @app.route('/v1/accessory/<mac_address>/login', methods=['POST'])
