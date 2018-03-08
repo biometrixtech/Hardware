@@ -69,7 +69,7 @@ Resources:
                 StringAttributeConstraints:
                     MinLength: '1'
                     MaxLength: '256'
-              - Name: 'owner_uuid'
+              - Name: 'owner_id'
                 AttributeDataType: 'String'
                 Mutable: true
                 Required: false
@@ -125,7 +125,7 @@ Resources:
               - "custom:hardware_model"
               - "custom:mac_address"
               - "custom:memory_level"
-              - "custom:owner_uuid"
+              - "custom:owner_id"
               - "custom:settings_key"
             RefreshTokenValidity: 30
             UserPoolId: { Ref: "CognitoUserPool" }
@@ -186,6 +186,7 @@ Resources:
                     Statement:
                       - Action:
                           - "cognito-idp:AdminCreateUser"
+                          - "cognito-idp:AdminDeleteUserAttributes"
                           - "cognito-idp:AdminGetUser"
                           - "cognito-idp:AdminInitiateAuth"
                           - "cognito-idp:AdminRespondToAuthChallenge"
