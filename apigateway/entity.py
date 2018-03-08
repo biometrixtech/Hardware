@@ -4,6 +4,7 @@ from operator import iand
 
 from boto3.dynamodb.conditions import Key
 from botocore.exceptions import ClientError
+from decimal import Decimal
 
 from dynamodbupdate import DynamodbUpdate
 from exceptions import InvalidSchemaException, NoSuchEntityException, DuplicateEntityException
@@ -24,14 +25,31 @@ class Entity:
     def schema():
         raise NotImplementedError
 
-    def _get_required_fields(self):
-        return self.schema()['required']
+    def get_fields(self, *, immutable=None, required=None, primary_key=None):
+        fields = {}
+        schema = self.schema()
+        for field, config in schema['properties'].items():
+            fields[field] = {
+                'immutable': config.get('readonly', False),
+                'required': field in schema['required'],
+                'primary_key': field in self.primary_key.keys()
+            }
+        return [
+            k for k, v in fields.items()
+            if (immutable is None or v['immutable'] == immutable)
+            and (required is None or v['required'] == required)
+            and (primary_key is None or v['primary_key'] == primary_key)
+        ]
 
-    def _get_mutable_fields(self):
-        return [field for field, config in self.schema()['properties'].items() if not config.get('readonly', False)]
-
-    def _get_immutable_fields(self):
-        return [field for field, config in self.schema()['properties'].items() if config.get('readonly', False)]
+    def get_field_type(self, field):
+        schema = self.schema()
+        if field not in schema['properties']:
+            raise KeyError(field)
+        return {
+            'string': str,
+            'number': Decimal,
+            # TODO complete
+        }[schema['properties'][field]['type']]
 
     def validate(self, operation, body):
         # Primary key must be complete
@@ -40,13 +58,13 @@ class Entity:
 
         if operation == 'PATCH':
             # Not allowed to modify readonly attributes for PATCH
-            for key in self._get_immutable_fields():
-                if key in body and key not in self.primary_key.keys():
+            for key in self.get_fields(immutable=True, primary_key=False):
+                if key in body:
                     raise InvalidSchemaException('Cannot modify value of immutable parameter: {}'.format(key))
 
         else:
             # Required fields must be present for PUT
-            for key in self._get_required_fields():
+            for key in self.get_fields(required=True, primary_key=False):
                 if key not in body and key not in self.primary_key.keys():
                     raise InvalidSchemaException('Missing required parameter: {}'.format(key))
 
@@ -83,19 +101,17 @@ class DynamodbEntity(Entity):
             raise NoSuchEntityException()
         return res[0]
 
-    def patch(self, body, upsert=True):
+    def patch(self, body, create=False):
         self.validate('PATCH', body)
 
         try:
             upsert = DynamodbUpdate()
-            for key in self._get_mutable_fields() + self._get_immutable_fields():
+            for key in self.get_fields(immutable=None if create else False, primary_key=False):
                 if key in body:
                     if self.schema()['properties'][key]['type'] in ['list', 'object']:
                         upsert.add(key, set(body[key]))
                     else:
                         upsert.set(key, body[key])
-                    if key in self._get_immutable_fields():
-                        pass
 
             self._get_dynamodb_resource().update_item(
                 Key=self.primary_key,
@@ -117,7 +133,7 @@ class DynamodbEntity(Entity):
 
     def create(self, body):
         self.validate('PUT', body)
-        return self.patch(body, False)
+        return self.patch(body, True)
 
     @abstractmethod
     def _get_dynamodb_resource(self):

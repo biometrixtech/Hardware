@@ -121,11 +121,17 @@ def _save_sync_record(mac_address, event_date, body):
         'accessory_mac_address': mac_address,
         'event_date': event_date,
     }
-    for k, v in body['accessory'].items():
-        item['accessory_{}'.format(k)] = v
+    accessory_fields = Accessory(mac_address).get_fields(immutable=False, primary_key=False)
+    for k in accessory_fields:
+        if k in body['accessory']:
+            item['accessory_{}'.format(k)] = body['accessory'][k]
     for i in range(len(body['sensors'])):
-        for k, v in body['sensors'][i].items():
-            item['sensor{}_{}'.format(i + 1, k)] = v
+        sensor = Sensor(body['sensors'][i]['mac_address'])
+        sensor_fields = sensor.get_fields(immutable=False, primary_key=True)
+        for k in sensor_fields:
+            if k in body['sensors'][i]:
+                field_type = sensor.get_field_type(k)
+                item['sensor{}_{}'.format(i + 1, k)] = field_type(body['sensors'][i][k])
 
     dynamodb_resource = boto3.resource('dynamodb').Table(os.environ['DYNAMODB_ACCESSORYSYNCLOG_TABLE_NAME'])
     dynamodb_resource.put_item(Item=item)

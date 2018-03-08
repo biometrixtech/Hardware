@@ -34,9 +34,10 @@ class Accessory(Entity):
         custom_properties = {prop['Name'].split(':')[-1]: prop['Value'] for prop in res['UserAttributes']}
 
         ret = self.primary_key
-        for key in self._get_mutable_fields() + self._get_immutable_fields():
+        for key in self.get_fields(primary_key=False):
             if key in custom_properties:
-                ret[key] = custom_properties[key]
+                field_type = self.get_field_type(key)
+                ret[key] = field_type(custom_properties[key])
             else:
                 ret[key] = self.schema()['properties'][key].get('default', None)
         return ret
@@ -44,7 +45,7 @@ class Accessory(Entity):
     def patch(self, body):
         attributes = [
             {'Name': 'custom:{}'.format(key), 'Value': str(body[key])}
-            for key in self._get_mutable_fields()
+            for key in self.get_fields(immutable=False, primary_key=False)
             if key in body
         ]
 
@@ -62,7 +63,7 @@ class Accessory(Entity):
 
     def create(self, body):
         body['mac_address'] = self._mac_address
-        for key in self._get_required_fields():
+        for key in self.get_fields(required=True):
             if key not in body:
                 raise InvalidSchemaException('Missing required request parameters: {}'.format(key))
         try:
@@ -72,7 +73,7 @@ class Accessory(Entity):
                 TemporaryPassword=body['password'],
                 UserAttributes=[
                     {'Name': 'custom:{}'.format(key), 'Value': body[key]}
-                    for key in self._get_mutable_fields() + self._get_immutable_fields()
+                    for key in self.get_fields(primary_key=False)
                     if key in body
                 ],
                 MessageAction='SUPPRESS',

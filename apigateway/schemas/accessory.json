@@ -15,11 +15,11 @@
         },
         "battery_level": {
             "description": "Accessory remaining battery",
-            "type": ["number", "string"]
+            "type": "number"
         },
         "memory_level": {
             "description": "Accessory remaining memory",
-            "type": ["number", "string"]
+            "type": "number"
         },
         "firmware_version": {
             "description": "Accessory firmware version",
