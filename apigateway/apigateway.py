@@ -94,8 +94,8 @@ def handle_accessory_sync(mac_address):
     _save_sync_record(mac_address, request.json['event_date'], res)
 
     res['latest_firmware'] = {
-        'accessory': Firmware('accessory', 'latest').get(),
-        'sensor': Firmware('sensor', 'latest').get()
+        'accessory_version': Firmware('accessory', 'latest').get()['version'],
+        'sensor_version': Firmware('sensor', 'latest').get()['version']
     }
     return res
 
