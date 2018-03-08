@@ -14,6 +14,17 @@ class Entity:
 
     def __init__(self, primary_key):
         self._primary_key = primary_key
+
+        self._primary_key_fields = list(primary_key.keys())
+        self._fields = {}
+        schema = self.schema()
+        for field, config in schema['properties'].items():
+            self._fields[field] = {
+                'immutable': config.get('readonly', False),
+                'required': field in schema['required'],
+                'primary_key': field in self._primary_key_fields
+            }
+
         self._exists = None
 
     @property
@@ -26,16 +37,8 @@ class Entity:
         raise NotImplementedError
 
     def get_fields(self, *, immutable=None, required=None, primary_key=None):
-        fields = {}
-        schema = self.schema()
-        for field, config in schema['properties'].items():
-            fields[field] = {
-                'immutable': config.get('readonly', False),
-                'required': field in schema['required'],
-                'primary_key': field in self.primary_key.keys()
-            }
         return [
-            k for k, v in fields.items()
+            k for k, v in self._fields.items()
             if (immutable is None or v['immutable'] == immutable)
             and (required is None or v['required'] == required)
             and (primary_key is None or v['primary_key'] == primary_key)
