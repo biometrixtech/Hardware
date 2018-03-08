@@ -43,17 +43,25 @@ class Accessory(Entity):
         return ret
 
     def patch(self, body):
-        attributes = [
-            {'Name': 'custom:{}'.format(key), 'Value': str(body[key])}
-            for key in self.get_fields(immutable=False, primary_key=False)
-            if key in body
-        ]
+        attributes_to_update = []
+        attributes_to_delete = []
+        for key in self.get_fields(immutable=False, primary_key=False):
+            if key in body:
+                if body[key] is None:
+                    attributes_to_delete.append('custom:{}'.format(key))
+                else:
+                    attributes_to_update.append({'Name': 'custom:{}'.format(key), 'Value': str(body[key])})
 
         if self.exists():
             cognito_client.admin_update_user_attributes(
                 UserPoolId=os.environ['COGNITO_USER_POOL_ID'],
                 Username=self._mac_address,
-                UserAttributes=attributes
+                UserAttributes=attributes_to_update
+            )
+            cognito_client.admin_delete_user_attributes(
+                UserPoolId=os.environ['COGNITO_USER_POOL_ID'],
+                Username=self._mac_address,
+                UserAttributeNames=attributes_to_delete
             )
         else:
             # TODO
