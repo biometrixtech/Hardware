@@ -205,7 +205,7 @@ Resources:
                           - { "Fn::GetAtt": [ "AccessorySyncLogTable", "Arn" ] }
 
                       - Action:
-                          - "s3:PutItem"
+                          - "s3:PutObject"
                         Effect: "Allow"
                         Resource: { "Fn::Sub": "arn:aws:s3:::biometrix-preprocessing-${Environment}-${AWS::Region}/*" }
             RoleName: { "Fn::Sub": "hardware-${Environment}-apigateway-${AWS::Region}" }
