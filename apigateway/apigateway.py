@@ -41,6 +41,13 @@ def handle_accessory_register(mac_address):
     return {"status": "success"}, 201
 
 
+@app.route('/v1/accessory/<mac_address>', methods=['GET'])
+@app.route('/hardware/accessory/<mac_address>', methods=['GET'])
+def handle_accessory_get(mac_address):
+    accessory = Accessory(mac_address).get()
+    return {'accessory': accessory}
+
+
 @app.route('/v1/accessory/<mac_address>/login', methods=['POST'])
 @app.route('/hardware/accessory/<mac_address>/login', methods=['POST'])
 def handle_accessory_login(mac_address):
