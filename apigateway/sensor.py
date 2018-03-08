@@ -56,8 +56,8 @@ class Sensor(Entity):
             WHERE sensors.id = %s""",
             [
                 body['firmware_version'],
-                body['last_user_id'],
-                body['memory_level'],
+                body.get('last_user_id', None),
+                body.get('memory_level', None),
                 datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ"),
                 self.mac_address
             ]
