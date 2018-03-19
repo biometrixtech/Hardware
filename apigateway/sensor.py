@@ -43,7 +43,29 @@ class Sensor(Entity):
 
     def create(self, body):
         self.validate('PUT', body)
-        raise NotImplementedError()
+        res = query_postgres(
+            """INSERT INTO sensors (
+                id,
+                firmware_version,
+                last_user_id,
+                memory_level,
+                hw_model,
+                created_at,
+                updated_at
+                )
+                VALUES (%s, %s, %s, %s, %s, %s, %s)""",
+            [
+                self.mac_address,
+                body['firmware_version'],
+                body.get('last_user_id', None),
+                body.get('memory_level', None),
+                body.get('hardware_model', None),
+                datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ"),
+                datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ"),
+            ]
+        )
+        print(res)
+        return self.get()
 
     def patch(self, body):
         self.validate('PATCH', body)

@@ -11,11 +11,11 @@
         },
         "battery_level": {
             "description": "Sensor remaining battery",
-            "type": ["number"]
+            "type": "number"
         },
         "memory_level": {
             "description": "Sensor remaining memory",
-            "type": ["number"]
+            "type": "number"
         },
         "firmware_version": {
             "description": "Sensor firmware version",
