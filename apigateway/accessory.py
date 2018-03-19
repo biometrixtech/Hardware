@@ -36,8 +36,7 @@ class Accessory(Entity):
         ret = self.primary_key
         for key in self.get_fields(primary_key=False):
             if key in custom_properties:
-                field_type = self.get_field_type(key)
-                ret[key] = field_type(custom_properties[key])
+                ret[key] = self.cast(key, custom_properties[key])
             else:
                 ret[key] = self.schema()['properties'][key].get('default', None)
         return ret

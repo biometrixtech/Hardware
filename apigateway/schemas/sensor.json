@@ -6,7 +6,7 @@
     "properties": {
         "mac_address": {
             "description": "Mac Address of the sensor",
-            "type": "string",
+            "type": { "$ref": "types.json/definitions/macaddress" },
             "readonly": true
         },
         "battery_level": {

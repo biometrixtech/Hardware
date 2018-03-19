@@ -75,16 +75,19 @@ def handle_accessory_login(mac_address):
 def handle_accessory_sync(mac_address):
     res = {}
 
-    if 'event_date' not in request.json:
-        raise ApplicationException(400, 'InvalidSchema', 'Missing required request parameters: event_date')
+    for required_parameter in ['event_date', 'accessory', 'sensors']:
+        if required_parameter not in request.json:
+            raise ApplicationException(400, 'InvalidSchema', 'Missing required request parameters: {}'.format(required_parameter))
 
-    if 'accessory' not in request.json:
-        raise ApplicationException(400, 'InvalidSchema', 'Missing required request parameters: accessory')
+    # event_date must be in correct format
+    try:
+        datetime.datetime.strptime(request.json['event_date'], "%Y-%m-%dT%H:%M:%SZ")
+    except ValueError:
+        raise ApplicationException(400, 'InvalidSchema', "event_date parameter must be in '%Y-%m-%dT%H:%M:%SZ' format")
+
     accessory = Accessory(mac_address)
     res['accessory'] = accessory.patch(request.json['accessory'])
 
-    if 'sensors' not in request.json:
-        raise ApplicationException(400, 'InvalidSchema', 'Missing required request parameters: sensors')
     res['sensors'] = []
     for sensor in request.json['sensors']:
         # TODO work out how we're actually persisting this data
@@ -145,7 +148,7 @@ def handle_misc_time():
 
 def _save_sync_record(mac_address, event_date, body):
     item = {
-        'accessory_mac_address': mac_address,
+        'accessory_mac_address': mac_address.upper(),
         'event_date': event_date,
     }
     accessory_fields = Accessory(mac_address).get_fields(immutable=False, primary_key=False)
@@ -154,11 +157,10 @@ def _save_sync_record(mac_address, event_date, body):
             item['accessory_{}'.format(k)] = body['accessory'][k]
     for i in range(len(body['sensors'])):
         sensor = Sensor(body['sensors'][i]['mac_address'])
-        sensor_fields = sensor.get_fields(immutable=False, primary_key=True)
+        sensor_fields = sensor.get_fields(primary_key=True) + sensor.get_fields(immutable=False)
         for k in sensor_fields:
             if k in body['sensors'][i]:
-                field_type = sensor.get_field_type(k)
-                item['sensor{}_{}'.format(i + 1, k)] = field_type(body['sensors'][i][k])
+                item['sensor{}_{}'.format(i + 1, k)] = sensor.cast(k, body['sensors'][i][k])
 
     dynamodb_resource = boto3.resource('dynamodb').Table(os.environ['DYNAMODB_ACCESSORYSYNCLOG_TABLE_NAME'])
     dynamodb_resource.put_item(Item=item)

@@ -44,15 +44,23 @@ class Entity:
             and (primary_key is None or v['primary_key'] == primary_key)
         ]
 
-    def get_field_type(self, field):
+    def cast(self, field, value):
         schema = self.schema()
         if field not in schema['properties']:
             raise KeyError(field)
-        return {
-            'string': str,
-            'number': Decimal,
-            # TODO complete
-        }[schema['properties'][field]['type']]
+
+        field_type = schema['properties'][field]['type']
+        if isinstance(field_type, dict) and '$ref' in field_type:
+            field_type = field_type['$ref']
+
+        if field_type == 'string':
+            return str(value)
+        elif field_type == 'number':
+            return Decimal(str(value))
+        elif field_type == "types.json/definitions/macaddress":
+            return str(value).upper()
+        else:
+            raise NotImplementedError("field_type '{}' cannot be cast".format(field_type))
 
     def validate(self, operation, body):
         # Primary key must be complete
