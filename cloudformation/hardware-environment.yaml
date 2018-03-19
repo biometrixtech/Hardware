@@ -224,7 +224,6 @@ Resources:
                     AWS_ACCOUNT_ID: { Ref: "AWS::AccountId" }
                     DYNAMODB_FIRMWARE_TABLE_NAME: { Ref: "FirmwareTable" }
                     DYNAMODB_ACCESSORYSYNCLOG_TABLE_NAME: { Ref: "AccessorySyncLogTable" }
-                    S3_INGEST_BUCKET_NAME: { "Fn::Sub": "biometrix-preprocessing-${Environment}-${AWS::Region}" }
             Handler: "apigateway.handler"
             Runtime: "python3.6"
             Timeout: "30"
