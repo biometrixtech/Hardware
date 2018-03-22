@@ -1,4 +1,5 @@
 from aws_xray_sdk.core import xray_recorder, patch_all
+from functools import wraps
 import boto3
 import datetime
 import json
@@ -8,7 +9,7 @@ import traceback
 import uuid
 
 from accessory import Accessory
-from exceptions import ApplicationException, InvalidSchemaException, NoSuchEntityException
+from exceptions import ApplicationException, InvalidSchemaException, NoSuchEntityException, UnauthorizedException
 from firmware import Firmware
 from flask import request, Response, jsonify
 from flask_lambda import FlaskLambda
@@ -32,6 +33,18 @@ app = FlaskLambda(__name__)
 app.response_class = ApiResponse
 
 
+def authentication_required(decorated_function):
+    """Decorator to require a JWT token to be passed."""
+    @wraps(decorated_function)
+    def wrapper(*args, **kwargs):
+        print('checking authorization')
+        if 'Authorization' in request.headers and authenticate_user_jwt(request.headers['Authorization']):
+            return decorated_function(*args, **kwargs)
+        else:
+            raise UnauthorizedException()
+    return wrapper
+
+
 @app.route('/v1/accessory/<mac_address>/register', methods=['POST'])
 @app.route('/hardware/accessory/<mac_address>/register', methods=['POST'])
 def handle_accessory_register(mac_address):
@@ -42,13 +55,16 @@ def handle_accessory_register(mac_address):
 
 @app.route('/v1/accessory/<mac_address>', methods=['GET'])
 @app.route('/hardware/accessory/<mac_address>', methods=['GET'])
+@authentication_required
 def handle_accessory_get(mac_address):
+    print('should be authenticated')
     accessory = Accessory(mac_address).get()
     return {'accessory': accessory}
 
 
 @app.route('/v1/accessory/<mac_address>', methods=['PATCH'])
 @app.route('/hardware/accessory/<mac_address>', methods=['PATCH'])
+@authentication_required
 def handle_accessory_patch(mac_address):
     accessory = Accessory(mac_address)
     if not accessory.exists():
@@ -72,6 +88,7 @@ def handle_accessory_login(mac_address):
 
 @app.route('/v1/accessory/<mac_address>/sync', methods=['POST'])
 @app.route('/hardware/accessory/<mac_address>/sync', methods=['POST'])
+@authentication_required
 def handle_accessory_sync(mac_address):
     res = {}
 
@@ -105,6 +122,7 @@ def handle_accessory_sync(mac_address):
 
 @app.route('/v1/sensor/<mac_address>', methods=['PATCH'])
 @app.route('/hardware/sensor/<mac_address>', methods=['PATCH'])
+@authentication_required
 def handle_sensor_patch(mac_address):
     ret = _patch_sensor(mac_address, request.json)
     return {'sensor': ret}
@@ -112,6 +130,7 @@ def handle_sensor_patch(mac_address):
 
 @app.route('/v1/sensor', methods=['PATCH'])
 @app.route('/hardware/sensor', methods=['PATCH'])
+@authentication_required
 def handle_sensor_multipatch():
     if 'sensors' not in request.json or not isinstance(request.json['sensors'], list):
         raise InvalidSchemaException('Missing required parameter sensors')
@@ -130,8 +149,16 @@ def _patch_sensor(mac_address, body):
 
 @app.route('/v1/firmware/<device_type>/<version>', methods=['GET'])
 @app.route('/hardware/firmware/<device_type>/<version>', methods=['GET'])
+@authentication_required
 def handle_firmware_get(device_type, version):
     return {'firmware': Firmware(device_type, version).get()}
+
+
+@app.route('/v1/firmware/<device_type>/<version>/download', methods=['GET'])
+@app.route('/hardware/firmware/<device_type>/<version>/download', methods=['GET'])
+@authentication_required
+def handle_firmware_download(device_type, version):
+    firmware = Firmware(device_type, version).get()
 
 
 @app.route('/v1/misc/uuid', methods=['GET'])
@@ -164,6 +191,21 @@ def _save_sync_record(mac_address, event_date, body):
 
     dynamodb_resource = boto3.resource('dynamodb').Table(os.environ['DYNAMODB_ACCESSORYSYNCLOG_TABLE_NAME'])
     dynamodb_resource.put_item(Item=item)
+
+
+def authenticate_user_jwt(jwt):
+    res = json.loads(boto3.client('lambda').invoke(
+        FunctionName='users-{ENVIRONMENT}-apigateway-authenticate'.format(**os.environ),
+        Payload=json.dumps({"authorizationToken": jwt}),
+    )['Payload'].read())
+    print(res)
+
+    if 'principalId' in res:
+        # Success
+        return res['principalId']
+    elif 'errorMessage' in res:
+        # Some failure
+        raise UnauthorizedException()
 
 
 @app.errorhandler(500)
