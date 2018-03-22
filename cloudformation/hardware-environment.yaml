@@ -208,6 +208,11 @@ Resources:
                           - "s3:PutObject"
                         Effect: "Allow"
                         Resource: { "Fn::Sub": "arn:aws:s3:::biometrix-preprocessing-${Environment}-${AWS::Region}/*" }
+                        
+                      - Action:
+                          - "lambda:InvokeFunction"
+                        Effect: "Allow"
+                        Resource: { "Fn::Sub": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:users-${Environment}-apigateway-authenticate" }
             RoleName: { "Fn::Sub": "hardware-${Environment}-apigateway-${AWS::Region}" }
 
     ApiGatewayLambda:
