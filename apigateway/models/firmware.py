@@ -3,7 +3,7 @@ import boto3
 import json
 import os
 
-from entity import DynamodbEntity
+from models.entity import DynamodbEntity
 from exceptions import NoSuchEntityException
 
 

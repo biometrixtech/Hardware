@@ -1,21 +1,13 @@
-from aws_xray_sdk.core import xray_recorder, patch_all
-from functools import wraps
-import boto3
-import datetime
 import json
-import os
 import sys
 import traceback
-import uuid
 
-from accessory import Accessory
-from exceptions import ApplicationException, InvalidSchemaException, NoSuchEntityException, UnauthorizedException
-from firmware import Firmware
-from flask import request, Response, jsonify
+from exceptions import ApplicationException
+from flask import Response, jsonify
 from flask_lambda import FlaskLambda
-from sensor import Sensor
 from serialisable import json_serialise
 
+from aws_xray_sdk.core import patch_all
 patch_all()
 
 
@@ -32,180 +24,18 @@ class ApiResponse(Response):
 app = FlaskLambda(__name__)
 app.response_class = ApiResponse
 
-
-def authentication_required(decorated_function):
-    """Decorator to require a JWT token to be passed."""
-    @wraps(decorated_function)
-    def wrapper(*args, **kwargs):
-        print('checking authorization')
-        if 'Authorization' in request.headers and authenticate_user_jwt(request.headers['Authorization']):
-            return decorated_function(*args, **kwargs)
-        else:
-            raise UnauthorizedException()
-    return wrapper
-
-
-@app.route('/v1/accessory/<mac_address>/register', methods=['POST'])
-@app.route('/hardware/accessory/<mac_address>/register', methods=['POST'])
-def handle_accessory_register(mac_address):
-    accessory = Accessory(mac_address)
-    accessory.create(request.json)
-    return {"status": "success"}, 201
-
-
-@app.route('/v1/accessory/<mac_address>', methods=['GET'])
-@app.route('/hardware/accessory/<mac_address>', methods=['GET'])
-@authentication_required
-def handle_accessory_get(mac_address):
-    print('should be authenticated')
-    accessory = Accessory(mac_address).get()
-    return {'accessory': accessory}
-
-
-@app.route('/v1/accessory/<mac_address>', methods=['PATCH'])
-@app.route('/hardware/accessory/<mac_address>', methods=['PATCH'])
-@authentication_required
-def handle_accessory_patch(mac_address):
-    accessory = Accessory(mac_address)
-    if not accessory.exists():
-        ret = accessory.create(request.json)
-    else:
-        ret = accessory.patch(request.json)
-    return ret
-
-
-@app.route('/v1/accessory/<mac_address>/login', methods=['POST'])
-@app.route('/hardware/accessory/<mac_address>/login', methods=['POST'])
-def handle_accessory_login(mac_address):
-    if 'password' not in request.json:
-        raise InvalidSchemaException('Missing required request parameters: password')
-    accessory = Accessory(mac_address)
-    return {
-        'username': mac_address,
-        'authorization': accessory.login(request.json['password'])
-    }
-
-
-@app.route('/v1/accessory/<mac_address>/sync', methods=['POST'])
-@app.route('/hardware/accessory/<mac_address>/sync', methods=['POST'])
-@authentication_required
-def handle_accessory_sync(mac_address):
-    res = {}
-
-    for required_parameter in ['event_date', 'accessory', 'sensors']:
-        if required_parameter not in request.json:
-            raise ApplicationException(400, 'InvalidSchema', 'Missing required request parameters: {}'.format(required_parameter))
-
-    # event_date must be in correct format
-    try:
-        datetime.datetime.strptime(request.json['event_date'], "%Y-%m-%dT%H:%M:%SZ")
-    except ValueError:
-        raise ApplicationException(400, 'InvalidSchema', "event_date parameter must be in '%Y-%m-%dT%H:%M:%SZ' format")
-
-    accessory = Accessory(mac_address)
-    res['accessory'] = accessory.patch(request.json['accessory'])
-
-    res['sensors'] = []
-    for sensor in request.json['sensors']:
-        # TODO work out how we're actually persisting this data
-        res['sensors'].append(sensor)
-
-    # Save the data in a time-rolling ddb log table
-    _save_sync_record(mac_address, request.json['event_date'], res)
-
-    res['latest_firmware'] = {
-        'accessory_version': Firmware('accessory', 'latest').get()['version'],
-        'sensor_version': Firmware('sensor', 'latest').get()['version']
-    }
-    return res
-
-
-@app.route('/v1/sensor/<mac_address>', methods=['PATCH'])
-@app.route('/hardware/sensor/<mac_address>', methods=['PATCH'])
-@authentication_required
-def handle_sensor_patch(mac_address):
-    ret = _patch_sensor(mac_address, request.json)
-    return {'sensor': ret}
-
-
-@app.route('/v1/sensor', methods=['PATCH'])
-@app.route('/hardware/sensor', methods=['PATCH'])
-@authentication_required
-def handle_sensor_multipatch():
-    if 'sensors' not in request.json or not isinstance(request.json['sensors'], list):
-        raise InvalidSchemaException('Missing required parameter sensors')
-    ret = [_patch_sensor(s['mac_address'], s) for s in request.json['sensors']]
-    return {'sensors': ret}
-
-
-def _patch_sensor(mac_address, body):
-    sensor = Sensor(mac_address)
-    if not sensor.exists():
-        ret = sensor.create(body)
-    else:
-        ret = sensor.patch(body)
-    return ret
-
-
-@app.route('/v1/firmware/<device_type>/<version>', methods=['GET'])
-@app.route('/hardware/firmware/<device_type>/<version>', methods=['GET'])
-@authentication_required
-def handle_firmware_get(device_type, version):
-    return {'firmware': Firmware(device_type, version).get()}
-
-
-@app.route('/v1/firmware/<device_type>/<version>/download', methods=['GET'])
-@app.route('/hardware/firmware/<device_type>/<version>/download', methods=['GET'])
-@authentication_required
-def handle_firmware_download(device_type, version):
-    firmware = Firmware(device_type, version).get()
-
-
-@app.route('/v1/misc/uuid', methods=['GET'])
-@app.route('/hardware/misc/uuid', methods=['GET'])
-def handle_misc_uuid():
-    return {'uuids': [str(uuid.uuid4()) for _ in range(32)]}
-
-
-@app.route('/v1/misc/time', methods=['GET'])
-@app.route('/hardware/misc/time', methods=['GET'])
-def handle_misc_time():
-    return {'current_date': datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")}
-
-
-def _save_sync_record(mac_address, event_date, body):
-    item = {
-        'accessory_mac_address': mac_address.upper(),
-        'event_date': event_date,
-    }
-    accessory_fields = Accessory(mac_address).get_fields(immutable=False, primary_key=False)
-    for k in accessory_fields:
-        if k in body['accessory']:
-            item['accessory_{}'.format(k)] = body['accessory'][k]
-    for i in range(len(body['sensors'])):
-        sensor = Sensor(body['sensors'][i]['mac_address'])
-        sensor_fields = sensor.get_fields(primary_key=True) + sensor.get_fields(immutable=False)
-        for k in sensor_fields:
-            if k in body['sensors'][i]:
-                item['sensor{}_{}'.format(i + 1, k)] = sensor.cast(k, body['sensors'][i][k])
-
-    dynamodb_resource = boto3.resource('dynamodb').Table(os.environ['DYNAMODB_ACCESSORYSYNCLOG_TABLE_NAME'])
-    dynamodb_resource.put_item(Item=item)
-
-
-def authenticate_user_jwt(jwt):
-    res = json.loads(boto3.client('lambda').invoke(
-        FunctionName='users-{ENVIRONMENT}-apigateway-authenticate'.format(**os.environ),
-        Payload=json.dumps({"authorizationToken": jwt}),
-    )['Payload'].read())
-    print(res)
-
-    if 'principalId' in res:
-        # Success
-        return res['principalId']
-    elif 'errorMessage' in res:
-        # Some failure
-        raise UnauthorizedException()
+from routes.accessory import app as accessory_routes
+from routes.sensor import app as sensor_routes
+from routes.firmware import app as firmware_routes
+from routes.misc import app as misc_routes
+app.register_blueprint(accessory_routes, url_prefix='/v1/accessory')
+app.register_blueprint(accessory_routes, url_prefix='/hardware/accessory')
+app.register_blueprint(sensor_routes, url_prefix='/v1/sensor')
+app.register_blueprint(sensor_routes, url_prefix='/hardware/sensor')
+app.register_blueprint(firmware_routes, url_prefix='/v1/firmware')
+app.register_blueprint(firmware_routes, url_prefix='/hardware/firmware')
+app.register_blueprint(misc_routes, url_prefix='/v1/misc')
+app.register_blueprint(misc_routes, url_prefix='/hardware/misc')
 
 
 @app.errorhandler(500)

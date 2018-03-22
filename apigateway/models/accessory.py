@@ -4,7 +4,7 @@ import datetime
 import json
 import os
 
-from entity import Entity
+from models.entity import Entity
 from exceptions import DuplicateEntityException, InvalidSchemaException, NoSuchEntityException
 
 cognito_client = boto3.client('cognito-idp')

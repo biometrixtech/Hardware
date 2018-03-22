@@ -2,6 +2,8 @@
 
 apigateway/*
 !apigateway/*.py
+!apigateway/models
 !apigateway/pip_requirements
+!apigateway/routes
 !apigateway/schemas
 !apigateway/swagger.yaml

@@ -3,7 +3,7 @@ import json
 import datetime
 
 from querypostgres import query_postgres
-from entity import Entity
+from models.entity import Entity
 from exceptions import NoSuchEntityException
 
 
