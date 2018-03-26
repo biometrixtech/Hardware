@@ -148,6 +148,18 @@ Resources:
     ##  FIRMWARE
     ##########################################################################################################
 
+    FirmwareS3Bucket:
+        Type: "AWS::S3::Bucket"
+        Properties:
+            BucketName: { "Fn::Sub": "biometrix-hardware-${Environment}-${AWS::Region}" }
+            Tags:
+              - { Key: "Management", Value: "managed" }
+              - { Key: "Project", Value: "hardware" }
+              - { Key: "Environment", Value: { Ref: "Environment" } }
+              - { Key: "Service", Value: "firmware" }
+        # Don't delete this if we accidentally delete the stack (which would fail anyway unless the bucket is empty)
+        DeletionPolicy : "Retain"
+
     FirmwareTable:
         Type: "AWS::DynamoDB::Table"
         Properties:
@@ -205,10 +217,10 @@ Resources:
                           - { "Fn::GetAtt": [ "AccessorySyncLogTable", "Arn" ] }
 
                       - Action:
-                          - "s3:PutObject"
+                          - "s3:GetObject"
                         Effect: "Allow"
-                        Resource: { "Fn::Sub": "arn:aws:s3:::biometrix-preprocessing-${Environment}-${AWS::Region}/*" }
-                        
+                        Resource: { "Fn::GetAtt": [ "FirmwareS3Bucket", "Arn" ] }
+
                       - Action:
                           - "lambda:InvokeFunction"
                         Effect: "Allow"
@@ -229,6 +241,7 @@ Resources:
                     AWS_ACCOUNT_ID: { Ref: "AWS::AccountId" }
                     DYNAMODB_FIRMWARE_TABLE_NAME: { Ref: "FirmwareTable" }
                     DYNAMODB_ACCESSORYSYNCLOG_TABLE_NAME: { Ref: "AccessorySyncLogTable" }
+                    S3_FIRMWARE_BUCKET_NAME: { Ref: "FirmwareS3Bucket" }
             Handler: "apigateway.handler"
             Runtime: "python3.6"
             Timeout: "30"

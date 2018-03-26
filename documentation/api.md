@@ -448,13 +448,18 @@ If the request was not successful, the Service __may__ respond with:
 
 ### Firmware
 
-#### Latest
+#### Get
 
-This endpoint allows the client to determine the most recent available firmware.
+This endpoint allows the client to get information about a firmware version, or determine the most recent available firmware.
 
 ##### Query String
 
-The client __must__ submit a request to the endpoint `/firmware/{device_type}/latest`, where `device_type` __must__ be either the string `accessory` or `sensor`. The request method __must__ be `GET`.
+The client __must__ submit a request to the endpoint `/firmware/{device_type}/{version_number}`, where:
+
+* `device_type` __must__ be either the string `accessory` or `sensor`;
+* `version_number` __must__ be either a VersionNumber or the string "`latest`"
+
+The request method __must__ be `GET`.
 
 ##### Request
 
@@ -480,6 +485,40 @@ The Service __will__ respond either with an HTTP status of `200 OK` and a body w
 ```
 
 or, with an HTTP status of `303 See Other`, and a `Location` header pointing to another resource which __will__ respond to the same request with a body matching the above schema.
+
+If the `version_number` in the request was set to "`latest`", the Firmware object returned __will__ be the most recently-released firmware version for the requested device type.
+
+#### Download
+
+This endpoint allows the client to download the binary file for a given firmware version.
+
+##### Query String
+
+The client __must__ submit a request to the endpoint `/firmware/{device_type}/{version_number}/download`, where:
+
+* `device_type` __must__ be either the string `accessory` or `sensor`;
+* `version_number` __must__ be either a VersionNumber or the string "`latest`"
+
+The request method __must__ be `GET`.
+
+The client __must__ submit an `Accept` HTTP header with value `application/octet-stream` in order to receive a raw binary response.  Failure to supply this will result in the response being base-64 encoded. 
+
+##### Request
+
+This method takes no request body.
+
+Example request:
+
+```
+GET /hardware/firmware/accessory/latest/download HTTP/1.1
+Host: apis.env.fathomai.com
+Content-Type: application/json
+Authorization: eyJraWQ...ajBc4VQ
+```
+
+##### Response
+
+The Service __will__ respond with an HTTP status of `200 OK` and a body containing raw binary data.
 
 ### Miscellaneous
 

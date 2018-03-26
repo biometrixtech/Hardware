@@ -58,8 +58,13 @@ def handle_application_exception(e):
 def handler(event, context):
     print(json.dumps(event))
     ret = app(event, context)
+
     # Unserialise JSON output so AWS can immediately serialise it again...
     ret['body'] = ret['body'].decode('utf-8')
+
+    if ret['headers']['Content-Type'] == 'application/octet-stream':
+        ret['isBase64Encoded'] = True
+
     print(json.dumps(ret))
     return ret
 
