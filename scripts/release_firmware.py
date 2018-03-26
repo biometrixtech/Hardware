@@ -1,4 +1,15 @@
 #!/usr/bin/env python3
+#
+# Example:
+#
+#   release_firmware.py \
+#       --region us-west-2 \
+#       --environment dev \
+#       --devicetype accessory \
+#       --version 1.42 \
+#       --notes "This version fixes a bug where the accessory sometimes explodes" \
+#       /full/path/to/firmware/binary.bin
+#
 import argparse
 import datetime
 import re
