@@ -27,7 +27,7 @@ class Accessory(Entity):
                 Username=self._mac_address,
             )
         except ClientError as e:
-            if 'ResourceNotFoundException' in str(e):
+            if 'UserNotFoundException' in str(e):
                 raise NoSuchEntityException()
             raise
 
