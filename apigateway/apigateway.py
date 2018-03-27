@@ -23,6 +23,7 @@ class ApiResponse(Response):
 
 app = FlaskLambda(__name__)
 app.response_class = ApiResponse
+app.url_map.strict_slashes = False
 
 from routes.accessory import app as accessory_routes
 from routes.sensor import app as sensor_routes
@@ -49,6 +50,11 @@ def handle_unrecognised_endpoint(_):
     return {"message": "You must specify an endpoint"}, 404, {'Status': 'UnrecognisedEndpoint'}
 
 
+@app.errorhandler(405)
+def handle_unrecognised_endpoint(_):
+    return {"message": "The given method is not supported for this endpoint"}, 405, {'Status': 'UnsupportedMethod'}
+
+
 @app.errorhandler(ApplicationException)
 def handle_application_exception(e):
     traceback.print_exception(*sys.exc_info())
@@ -57,6 +63,10 @@ def handle_application_exception(e):
 
 def handler(event, context):
     print(json.dumps(event))
+
+    # Trim trailing slashes from urls
+    event['path'] = event['path'].rstrip('/')
+
     ret = app(event, context)
 
     # Unserialise JSON output so AWS can immediately serialise it again...
