@@ -13,6 +13,9 @@ def authentication_required(decorated_function):
         print('checking authorization')
         if 'Authorization' in request.headers and authenticate_user_jwt(request.headers['Authorization']):
             return decorated_function(*args, **kwargs)
+        elif 'jwt' in request.headers and authenticate_user_jwt(request.headers['jwt']):
+            # Legacy 10.1 firmware
+            return decorated_function(*args, **kwargs)
         else:
             raise UnauthorizedException()
     return wrapper

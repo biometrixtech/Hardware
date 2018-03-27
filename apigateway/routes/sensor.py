@@ -1,3 +1,5 @@
+import datetime
+
 from exceptions import InvalidSchemaException
 from flask import request, Blueprint
 
@@ -26,6 +28,7 @@ def handle_sensor_multipatch():
 def _patch_sensor(mac_address, body):
     sensor = Sensor(mac_address)
     if not sensor.exists():
+        body['created_date'] = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
         ret = sensor.create(body)
     else:
         ret = sensor.patch(body)

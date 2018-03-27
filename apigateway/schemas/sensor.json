@@ -42,7 +42,6 @@
     },
     "required": [
         "firmware_version",
-        "hardware_model",
         "mac_address",
         "settings_key",
         "created_date"
