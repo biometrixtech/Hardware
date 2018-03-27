@@ -119,7 +119,7 @@ if __name__ == '__main__':
         exit(1)
 
     # Upload the firmware file
-    s3_key = '{}/{}'.format(args.devicetype, args.version)
+    s3_key = 'firmware/{}/{}'.format(args.devicetype, args.version)
     s3_bucket.put_object(Key=s3_key, Body=open(filepath, 'rb'))
     print('Uploaded template from {} to s3://{}/{}'.format(filepath, s3_bucket.name, s3_key), colour=Fore.GREEN)
 
