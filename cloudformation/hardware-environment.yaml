@@ -219,7 +219,9 @@ Resources:
                       - Action:
                           - "s3:GetObject"
                         Effect: "Allow"
-                        Resource: { "Fn::Sub": "${FirmwareS3Bucket.Arn}/*" }
+                        Resource:
+                          - { "Fn::GetAtt": [ "FirmwareS3Bucket", "Arn" ] }
+                          - { "Fn::Sub": "${FirmwareS3Bucket.Arn}/*" }
 
                       - Action:
                           - "lambda:InvokeFunction"
