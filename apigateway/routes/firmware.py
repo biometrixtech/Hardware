@@ -10,13 +10,11 @@ app = Blueprint('firmware', __name__)
 
 
 @app.route('/<device_type>/<version>', methods=['GET'])
-@authentication_required
 def handle_firmware_get(device_type, version):
     return {'firmware': Firmware(device_type, version).get()}
 
 
 @app.route('/<device_type>/<version>/download', methods=['GET'])
-@authentication_required
 def handle_firmware_download(device_type, version):
     firmware = Firmware(device_type, version).get()
     s3_object = boto3.resource('s3').Object(
