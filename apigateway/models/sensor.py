@@ -64,7 +64,6 @@ class Sensor(Entity):
                 datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ"),
             ]
         )
-        print(res)
         return self.get()
 
     def patch(self, body):
@@ -84,5 +83,4 @@ class Sensor(Entity):
                 self.mac_address
             ]
         )
-        print(res)
         return self.get()

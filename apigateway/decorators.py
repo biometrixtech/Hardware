@@ -10,7 +10,6 @@ def authentication_required(decorated_function):
     """Decorator to require a JWT token to be passed."""
     @wraps(decorated_function)
     def wrapper(*args, **kwargs):
-        print('checking authorization')
         if 'Authorization' in request.headers and authenticate_user_jwt(request.headers['Authorization']):
             return decorated_function(*args, **kwargs)
         elif 'jwt' in request.headers and authenticate_user_jwt(request.headers['jwt']):

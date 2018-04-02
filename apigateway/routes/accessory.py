@@ -22,7 +22,6 @@ def handle_accessory_register(mac_address):
 @app.route('/<mac_address>', methods=['GET'])
 @authentication_required
 def handle_accessory_get(mac_address):
-    print('should be authenticated')
     accessory = Accessory(mac_address).get()
     return {'accessory': accessory}
 

@@ -88,10 +88,10 @@ class Accessory(Entity):
             return self.get()
 
         except ClientError as e:
-            print(e)
             if 'UsernameExistsException' in str(e):
                 raise DuplicateEntityException()
             else:
+                print(json.dumps({'exception': str(e)}))
                 raise
 
     def login(self, password):
@@ -104,7 +104,6 @@ class Accessory(Entity):
                 'PASSWORD': password
             },
         )
-        print(json.dumps(response))
         if 'ChallengeName' in response and response['ChallengeName'] == "NEW_PASSWORD_REQUIRED":
             # Need to set a new password
             response = cognito_client.admin_respond_to_auth_challenge(
@@ -114,7 +113,6 @@ class Accessory(Entity):
                 ChallengeResponses={'USERNAME': self._mac_address, 'NEW_PASSWORD': password},
                 Session=response['Session']
             )
-            print(json.dumps(response))
 
         expiry_date = datetime.datetime.now() + datetime.timedelta(
             seconds=response['AuthenticationResult']['ExpiresIn'])

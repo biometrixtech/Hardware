@@ -126,8 +126,6 @@ class DynamodbEntity(Entity):
 
             self._get_dynamodb_resource().update_item(
                 Key=self.primary_key,
-                # ConditionExpression=Attr('id').not_exists() | Attr('sessionStatus').eq(
-                #     'UPLOAD_IN_PROGRESS'),
                 UpdateExpression=upsert.update_expression,
                 ExpressionAttributeValues=upsert.parameters,
             )
@@ -135,11 +133,11 @@ class DynamodbEntity(Entity):
             return self.get()
 
         except ClientError as e:
-            print(e)
             # FIXME
             if 'UsernameExistsException' in str(e):
                 raise DuplicateEntityException()
             else:
+                print(json.dumps({'exception': e}))
                 raise
 
     def create(self, body):
