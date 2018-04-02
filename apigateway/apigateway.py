@@ -51,7 +51,7 @@ def handle_unrecognised_endpoint(_):
 
 
 @app.errorhandler(405)
-def handle_unrecognised_endpoint(_):
+def handle_unrecognised_method(_):
     return {"message": "The given method is not supported for this endpoint"}, 405, {'Status': 'UnsupportedMethod'}
 
 
