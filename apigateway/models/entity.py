@@ -133,8 +133,7 @@ class DynamodbEntity(Entity):
             return self.get()
 
         except ClientError as e:
-            # FIXME
-            if 'UsernameExistsException' in str(e):
+            if 'ConditionalCheckFailed' in str(e):
                 raise DuplicateEntityException()
             else:
                 print(json.dumps({'exception': e}))
