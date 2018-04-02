@@ -68,6 +68,11 @@ def handler(event, context):
     event['path'] = event['path'].rstrip('/')
 
     ret = app(event, context)
+    ret['headers'].update({
+        'Access-Control-Allow-Methods': 'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT',
+        'Access-Control-Allow-Headers': 'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token',
+        'Access-Control-Allow-Origin': '*',
+    })
 
     # Unserialise JSON output so AWS can immediately serialise it again...
     ret['body'] = ret['body'].decode('utf-8')
