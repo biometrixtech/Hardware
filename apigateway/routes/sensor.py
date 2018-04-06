@@ -14,7 +14,7 @@ app = Blueprint('sensor', __name__)
 @authentication_required
 @xray_recorder.capture('routes.sensor.patch')
 def handle_sensor_patch(mac_address):
-    xray_recorder.current_subsegment().put_annotation('sensor_id', mac_address)
+    xray_recorder.current_segment().put_annotation('sensor_id', mac_address)
     ret = _patch_sensor(mac_address, request.json)
     return {'sensor': ret}
 

@@ -1,14 +1,21 @@
+from flask import Response, jsonify
+from flask_lambda import FlaskLambda
 import json
+import os
 import sys
 import traceback
 
-from exceptions import ApplicationException
-from flask import Response, jsonify
-from flask_lambda import FlaskLambda
-from serialisable import json_serialise
 
-from aws_xray_sdk.core import patch_all
+# Break out of Lambda's X-Ray sandbox so we can define our own segments and attach metadata, annotations, etc, to them
+lambda_task_root_key = os.getenv('LAMBDA_TASK_ROOT')
+del os.environ['LAMBDA_TASK_ROOT']
+from aws_xray_sdk.core import patch_all, xray_recorder
+from aws_xray_sdk.core.models.trace_header import TraceHeader
 patch_all()
+os.environ['LAMBDA_TASK_ROOT'] = lambda_task_root_key
+
+from exceptions import ApplicationException
+from serialisable import json_serialise
 
 
 class ApiResponse(Response):
@@ -67,6 +74,22 @@ def handler(event, context):
     # Trim trailing slashes from urls
     event['path'] = event['path'].rstrip('/')
 
+    # Pass tracing info to X-Ray
+    if 'X-Amzn-Trace-Id-Safe' in event['headers']:
+        xray_trace = TraceHeader.from_header_str(event['headers']['X-Amzn-Trace-Id-Safe'])
+        xray_recorder.begin_segment(
+            name='hardware.{}.fathomai.com'.format(os.environ['ENVIRONMENT']),
+            traceid=xray_trace.root,
+            parent_id=xray_trace.parent
+        )
+    else:
+        xray_recorder.begin_segment(name='hardware.{}.fathomai.com'.format(os.environ['ENVIRONMENT']))
+
+    xray_recorder.current_segment().put_http_meta('url', 'https://{}{}'.format(event['headers']['Host'], event['path']))
+    xray_recorder.current_segment().put_http_meta('method', event['httpMethod'])
+    xray_recorder.current_segment().put_http_meta('user_agent', event['headers']['User-Agent'])
+    xray_recorder.current_segment().put_annotation('environment', os.environ['ENVIRONMENT'])
+
     ret = app(event, context)
     ret['headers'].update({
         'Access-Control-Allow-Methods': 'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT',
@@ -79,6 +102,11 @@ def handler(event, context):
 
     if ret['headers']['Content-Type'] == 'application/octet-stream':
         ret['isBase64Encoded'] = True
+
+    # xray_recorder.current_segment().http['response'] = {'status': ret['statusCode']}
+    xray_recorder.current_segment().put_http_meta('status', ret['statusCode'])
+    xray_recorder.current_segment().apply_status_code(ret['statusCode'])
+    xray_recorder.end_segment()
 
     print(json.dumps(ret))
     return ret

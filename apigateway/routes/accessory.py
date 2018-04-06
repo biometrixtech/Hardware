@@ -16,7 +16,7 @@ app = Blueprint('accessory', __name__)
 @app.route('/<mac_address>/register', methods=['POST'])
 @xray_recorder.capture('routes.accessory.register')
 def handle_accessory_register(mac_address):
-    xray_recorder.current_subsegment().put_annotation('accessory_id', mac_address)
+    xray_recorder.current_segment().put_annotation('accessory_id', mac_address)
     accessory = Accessory(mac_address)
     accessory.create(request.json)
     return {"status": "success"}, 201
@@ -26,7 +26,7 @@ def handle_accessory_register(mac_address):
 @authentication_required
 @xray_recorder.capture('routes.accessory.get')
 def handle_accessory_get(mac_address):
-    xray_recorder.current_subsegment().put_annotation('accessory_id', mac_address)
+    xray_recorder.current_segment().put_annotation('accessory_id', mac_address)
     accessory = Accessory(mac_address).get()
     return {'accessory': accessory}
 
@@ -35,7 +35,7 @@ def handle_accessory_get(mac_address):
 @authentication_required
 @xray_recorder.capture('routes.accessory.patch')
 def handle_accessory_patch(mac_address):
-    xray_recorder.current_subsegment().put_annotation('accessory_id', mac_address)
+    xray_recorder.current_segment().put_annotation('accessory_id', mac_address)
     accessory = Accessory(mac_address)
     if not accessory.exists():
         ret = accessory.create(request.json)
@@ -47,7 +47,7 @@ def handle_accessory_patch(mac_address):
 @app.route('/<mac_address>/login', methods=['POST'])
 @xray_recorder.capture('routes.accessory.login')
 def handle_accessory_login(mac_address):
-    xray_recorder.current_subsegment().put_annotation('accessory_id', mac_address)
+    xray_recorder.current_segment().put_annotation('accessory_id', mac_address)
     if 'password' not in request.json:
         raise InvalidSchemaException('Missing required request parameters: password')
     accessory = Accessory(mac_address)
@@ -61,7 +61,7 @@ def handle_accessory_login(mac_address):
 @authentication_required
 @xray_recorder.capture('routes.accessory.sync')
 def handle_accessory_sync(mac_address):
-    xray_recorder.current_subsegment().put_annotation('accessory_id', mac_address)
+    xray_recorder.current_segment().put_annotation('accessory_id', mac_address)
     res = {}
 
     for required_parameter in ['event_date', 'accessory', 'sensors']:
