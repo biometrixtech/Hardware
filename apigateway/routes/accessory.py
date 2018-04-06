@@ -99,7 +99,7 @@ def _save_sync_record(mac_address, event_date, body):
     }
     accessory_fields = Accessory(mac_address).get_fields(immutable=False, primary_key=False)
     for k in accessory_fields:
-        if k in body['accessory']:
+        if k in body['accessory'] and body['accessory'][k] is not None:
             item['accessory_{}'.format(k)] = body['accessory'][k]
     for i in range(len(body['sensors'])):
         sensor = Sensor(body['sensors'][i]['mac_address'])
