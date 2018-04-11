@@ -1,0 +1,3 @@
+{
+    "cmd": "$(which pip) install --quiet --user boto3; $(which python) ./lambci.py"
+}
