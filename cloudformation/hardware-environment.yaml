@@ -1,7 +1,7 @@
 # A template that creates a Hardware service
 # Version: da39a3ee5e6b4b0d3255bfef95601890afd80709
 #
-# Copyright 2017 Melon Software Ltd (UK), all rights reserved.  Used under license.
+# Copyright 2018 Melon Software Ltd (UK), all rights reserved.  Used under license.
 #
 AWSTemplateFormatVersion: "2010-09-09"
 Description: "Creates a Hardware service environment"
