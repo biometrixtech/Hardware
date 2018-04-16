@@ -15,7 +15,7 @@ Parameters:
 Mappings:
     TemplateVersion:
         Self: { Commit: "da39a3ee5e6b4b0d3255bfef95601890afd80709" }
-        Infrastructure: { Commit: "438cfa1991ac6bfac3ceb11f5a2b980a773ea06e" }
+        Infrastructure: { Commit: "2d222e78ee364e58b7db1709f89effdf4d1d4c7d" }
 
 Metadata:
     "AWS::CloudFormation::Interface":
@@ -241,7 +241,9 @@ Resources:
         Properties:
             Code:
                 S3Bucket: { "Fn::ImportValue": "InfrastructureBucketName" }
-                S3Key: { "Fn::Sub": "lambdas/hardware-${Environment}/apigateway.zip" }
+                S3Key: { "Fn::Sub": [ "lambdas/hardware/${TemplateVersion}/apigateway.zip", {
+                    TemplateVersion: { "Fn::FindInMap": [ "TemplateVersion", "Self", "Commit" ] }
+                } ] }
             Environment:
                 Variables:
                     COGNITO_USER_POOL_ID: { Ref: "CognitoUserPool" }
@@ -274,6 +276,7 @@ Resources:
                 Service: "apigateway"
                 LambdaArn: { "Fn::GetAtt": [ "ApiGatewayLambda", "Arn" ] }
                 CustomAuthLambdaArn: { "Fn::ImportValue": { "Fn::Sub": "users-${Environment}-CustomAuthLambdaArn" } }
+                CreateCustomDomain: "false"
             Tags:
               - { Key: "Name", Value: { "Fn::Sub": "hardware-${Environment}-apigateway" } }
               - { Key: "Management", Value: "managed" }
