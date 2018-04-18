@@ -116,6 +116,7 @@ Resources:
               Project: "hardware"
               Environment: { Ref: "Environment" }
               Service: "accessory"
+        DeletionPolicy : "Retain"
 
     CognitoUserPoolClient:
         Type: "AWS::Cognito::UserPoolClient"
@@ -179,6 +180,7 @@ Resources:
             ProvisionedThroughput:
                 ReadCapacityUnits: 1
                 WriteCapacityUnits: 1
+        DeletionPolicy : "Retain"
 
     ##########################################################################################################
     ##  API GATEWAY

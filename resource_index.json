@@ -1,0 +1,13 @@
+{
+    "templates": [
+        { "s3_filename": "hardware-environment.yaml", "src": "cloudformation/hardware-environment.yaml" }
+    ],
+    "lambdas": [
+        { "s3_key": "apigateway.zip", "src": "apigateway", "pip": true }
+    ],
+    "datastores": [
+        { "type": "dynamodb.table", "name": "hardware-{ENVIRONMENT}-firmware" },
+        { "type": "s3.bucket", "name": "biometrix-hardware-{ENVIRONMENT}" },
+        { "type": "cognito.userpool", "name": "hardware-{ENVIRONMENT}-accessories" }
+    ]
+}
