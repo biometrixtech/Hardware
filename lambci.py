@@ -65,13 +65,13 @@ def main():
     os.chdir(os.environ['SHALLOW_DIR'])
     for template in config['templates']:
         local_filename = os.path.realpath(os.path.join(os.environ['SHALLOW_DIR'], template['src']))
-        upload_cf_template(local_filename, template['s3_key'])
+        upload_cf_template(local_filename, template['s3_filename'])
 
     print("Deploying Lambda functions")
     for lambda_bundle in config['lambdas']:
         upload_lambda_bundle(
             os.path.join(os.environ['SHALLOW_DIR'], lambda_bundle['src']),
-            lambda_bundle['s3_key'],
+            lambda_bundle['s3_filename'],
             lambda_bundle['pip']
         )
 
