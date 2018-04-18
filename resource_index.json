@@ -3,7 +3,12 @@
         { "s3_filename": "hardware-environment.yaml", "src": "cloudformation/hardware-environment.yaml" }
     ],
     "lambdas": [
-        { "s3_filename": "apigateway.zip", "src": "apigateway", "pip": true }
+        {
+            "name": "hardware-{ENVIRONMENT}-apigateway-execute",
+            "s3_filename": "apigateway.zip",
+            "src": "apigateway",
+            "pip": true 
+        }
     ],
     "datastores": [
         { "type": "dynamodb.table", "name": "hardware-{ENVIRONMENT}-firmware" },
