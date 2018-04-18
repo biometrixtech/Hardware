@@ -40,7 +40,7 @@ def upload_lambda_bundle(local_filepath, s3_filename, pip_install=True):
     else:
         # Install pip requirements first
         if pip_install:
-            subprocess.check_call('pip install -t {} -r pip_requirements'.format(local_filepath), shell=True)
+            subprocess.check_call('pip install -t {f} -r {f}/pip_requirements'.format(f=local_filepath), shell=True)
 
         # Now zip
         shutil.make_archive(local_filepath, 'zip', local_filepath)
@@ -52,25 +52,23 @@ def upload_lambda_bundle(local_filepath, s3_filename, pip_install=True):
 
 
 def read_config():
-    with open(os.path.join(os.environ['SHALLOW_DIR'], 'resource_index.json'), 'r') as file:
+    with open('resource_index.json', 'r') as file:
         return json.load(file)
 
 
 def main():
-    os.environ['SHALLOW_DIR'] = os.environ['PWD']
     os.environ['PROJECT'] = os.environ['LAMBCI_REPO'].split('/')[-1].lower()
     config = read_config()
 
     print("Deploying CloudFormation templates")
-    os.chdir(os.environ['SHALLOW_DIR'])
     for template in config['templates']:
-        local_filename = os.path.realpath(os.path.join(os.environ['SHALLOW_DIR'], template['src']))
+        local_filename = os.path.realpath(template['src'])
         upload_cf_template(local_filename, template['s3_filename'])
 
     print("Deploying Lambda functions")
     for lambda_bundle in config['lambdas']:
         upload_lambda_bundle(
-            os.path.join(os.environ['SHALLOW_DIR'], lambda_bundle['src']),
+            os.path.realpath(lambda_bundle['src']),
             lambda_bundle['s3_filename'],
             lambda_bundle['pip']
         )
