@@ -12,7 +12,7 @@
     ],
     "datastores": [
         { "type": "dynamodb.table", "name": "hardware-{ENVIRONMENT}-firmware" },
-        { "type": "s3.bucket", "name": "biometrix-hardware-{ENVIRONMENT}" },
+        { "type": "s3.bucket", "name": "biometrix-hardware-{ENVIRONMENT}-{REGION}" },
         { "type": "cognito.userpool", "name": "hardware-{ENVIRONMENT}-accessories" }
     ]
 }
