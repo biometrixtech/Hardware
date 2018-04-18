@@ -33,6 +33,9 @@ def upload_lambda_bundle(local_filepath, s3_filename, pip_install=True):
 
     # Zipping one file
     if local_filepath[-3:] == '.py':
+        # Write in the version
+        replace_in_file(local_filepath, 'da39a3ee5e6b4b0d3255bfef95601890afd80709', os.environ['LAMBCI_COMMIT'])
+
         output_filename = local_filepath.replace('.py', '.zip')
         zipfile.ZipFile(output_filename + '.zip', mode='w').write(local_filepath)
 
@@ -41,6 +44,10 @@ def upload_lambda_bundle(local_filepath, s3_filename, pip_install=True):
         # Install pip requirements first
         if pip_install:
             subprocess.check_call('pip install -t {f} -r {f}/pip_requirements'.format(f=local_filepath), shell=True)
+
+        # Write the version into the bundle
+        with open(os.path.join(local_filepath, 'version'), "w") as file:
+            file.write(os.environ['LAMBCI_COMMIT'])
 
         # Now zip
         shutil.make_archive(local_filepath, 'zip', local_filepath)
