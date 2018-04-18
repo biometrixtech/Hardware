@@ -278,7 +278,7 @@ Resources:
                 Service: "apigateway"
                 LambdaArn: { "Fn::GetAtt": [ "ApiGatewayLambda", "Arn" ] }
                 CustomAuthLambdaArn: { "Fn::ImportValue": { "Fn::Sub": "users-${Environment}-CustomAuthLambdaArn" } }
-                CreateCustomDomain: "false"
+                CreateCustomDomain: "true"
             Tags:
               - { Key: "Name", Value: { "Fn::Sub": "hardware-${Environment}-apigateway" } }
               - { Key: "Management", Value: "managed" }
