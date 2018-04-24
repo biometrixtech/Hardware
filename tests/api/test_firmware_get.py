@@ -4,7 +4,7 @@ from base_test import BaseTest
 class TestFirmwareGetInvalidVersion(BaseTest):
     endpoint = 'firmware/accessory/fourtytwo'
     method = 'GET'
-    expected_status = 500
+    expected_status = 404
 
 
 class TestFirmwareGet10(BaseTest):
@@ -30,5 +30,6 @@ class TestFirmwareGetLatest(BaseTest):
         self.assertIn('device_type', body['firmware'])
         self.assertEqual('accessory', body['firmware']['device_type'])
         self.assertIn('version', body['firmware'])
-        self.assertEqual('1.0', body['firmware']['version'])
+        self.assertNotEqual('latest', body['firmware']['version'])
+        self.assertNotEqual('1.0', body['firmware']['version'])
 
