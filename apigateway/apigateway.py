@@ -1,7 +1,9 @@
 from flask import Response, jsonify
 from flask_lambda import FlaskLambda
+from werkzeug.routing import BaseConverter
 import json
 import os
+import re
 import sys
 import traceback
 
@@ -14,7 +16,7 @@ from aws_xray_sdk.core.models.trace_header import TraceHeader
 patch_all()
 os.environ['LAMBDA_TASK_ROOT'] = lambda_task_root_key
 
-from exceptions import ApplicationException
+from exceptions import ApplicationException, InvalidSchemaException
 from serialisable import json_serialise
 
 
@@ -28,9 +30,20 @@ class ApiResponse(Response):
         return super().force_type(rv, environ)
 
 
+class VersionNumberConverter(BaseConverter):
+    def to_python(self, value):
+        if not re.match('\d+\.\d+(\.\d+)?', value):
+            raise InvalidSchemaException('Version number must be in the format NN.NN(.NN)')
+        return value
+
+    def to_url(self, value):
+        return value
+
+
 app = FlaskLambda(__name__)
 app.response_class = ApiResponse
 app.url_map.strict_slashes = False
+app.url_map.converters['versionnumber'] = VersionNumberConverter
 
 from routes.accessory import app as accessory_routes
 from routes.sensor import app as sensor_routes
