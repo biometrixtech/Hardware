@@ -92,7 +92,6 @@ if __name__ == '__main__':
                         type=version_number)
     parser.add_argument('--notes',
                         help='Version release notes',
-                        type=version_number,
                         default='')
 
     args = parser.parse_args()
@@ -120,7 +119,10 @@ if __name__ == '__main__':
     # Create the DDB record
     insert = DynamodbUpdate()
     insert.set('created_date', datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ"))
-    insert.set('notes', args.notes)
+
+    if args.notes:
+        insert.set('notes', args.notes)
+
     ddb_table.update_item(
         Key={'device_type': args.devicetype, 'version': args.version},
         ConditionExpression=Attr('id').not_exists(),
