@@ -199,6 +199,7 @@ Resources:
               - "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
               - "arn:aws:iam::aws:policy/AWSXrayWriteOnlyAccess"
               - { "Fn::Sub": "arn:aws:iam::${AWS::AccountId}:policy/infrastructure-${Environment}-querypostgres" }
+              - { "Fn::ImportValue": "ValidateAuthPolicyArn-${Environment}" }
             Policies:
               - PolicyName: "default"
                 PolicyDocument:
@@ -231,11 +232,6 @@ Resources:
                         Resource:
                           - { "Fn::GetAtt": [ "FirmwareS3Bucket", "Arn" ] }
                           - { "Fn::Sub": "${FirmwareS3Bucket.Arn}/*" }
-
-                      - Action:
-                          - "lambda:InvokeFunction"
-                        Effect: "Allow"
-                        Resource: { "Fn::Sub": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:users-${Environment}-apigateway-authenticate" }
             RoleName: { "Fn::Sub": "hardware-${Environment}-apigateway-${AWS::Region}" }
 
     ApiGatewayLambda:
