@@ -22,7 +22,7 @@ def authentication_required(decorated_function):
 
 def authenticate_user_jwt(jwt):
     res = json.loads(boto3.client('lambda').invoke(
-        FunctionName='users-{ENVIRONMENT}-apigateway-validate'.format(**os.environ),
+        FunctionName='users-{ENVIRONMENT}-apigateway-validateauth'.format(**os.environ),
         Payload=json.dumps({"authorizationToken": jwt}),
     )['Payload'].read())
     print(res)
