@@ -199,7 +199,7 @@ Resources:
               - "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
               - "arn:aws:iam::aws:policy/AWSXrayWriteOnlyAccess"
               - { "Fn::Sub": "arn:aws:iam::${AWS::AccountId}:policy/infrastructure-${Environment}-querypostgres" }
-              - { "Fn::ImportValue": "UsersValidateAuthPolicyArn-${Environment}" }
+              - { "Fn::ImportValue": { "Fn::Sub": "UsersValidateAuthPolicyArn-${Environment}" } }
             Policies:
               - PolicyName: "default"
                 PolicyDocument:
