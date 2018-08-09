@@ -6,7 +6,7 @@
     "properties": {
         "device_type": {
             "description": "The type of hardware the firmware targets",
-            "type": { "enum": [ "accessory", "sensor", "ankle" ] },
+            "type": { "enum": [ "accessory", "ankle", "hip" ] },
             "readonly": true
         },
         "version": {

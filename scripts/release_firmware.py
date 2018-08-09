@@ -86,7 +86,7 @@ if __name__ == '__main__':
     parser.add_argument('devicetype',
                         type=str,
                         help='Device type',
-                        choices=['accessory', 'sensor', 'ankle'])
+                        choices=['accessory', 'ankle', 'hip'])
     parser.add_argument('version',
                         help='Version number',
                         type=version_number)
