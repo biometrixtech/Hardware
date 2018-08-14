@@ -53,7 +53,7 @@ def authenticate_user_jwt(token):
         return res['principalId']
     elif 'errorMessage' in res:
         # Some failure
-        raise UnauthorizedException()
+        raise UnauthorizedException(res['errorMessage'])
 
 
 def authenticate_hardware_jwt(token):
@@ -68,7 +68,7 @@ def authenticate_hardware_jwt(token):
         return res['principalId']
     elif 'errorMessage' in res:
         # Some failure
-        raise UnauthorizedException()
+        raise UnauthorizedException(res['errorMessage'])
 
 
 def validate_mac_address(string):
