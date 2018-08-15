@@ -74,6 +74,9 @@ def handler(event, context):
     # Trim trailing slashes from urls
     event['path'] = event['path'].rstrip('/')
 
+    # Trim semantic versioning string from urls, if present
+    event['path'] = event['path'].replace('/hardware/latest/', '/hardware/').replace('/hardware/1.0.0/', '/hardware/')
+
     # Pass tracing info to X-Ray
     if 'X-Amzn-Trace-Id-Safe' in event['headers']:
         xray_trace = TraceHeader.from_header_str(event['headers']['X-Amzn-Trace-Id-Safe'])
