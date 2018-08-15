@@ -8,7 +8,7 @@ from models.entity import DynamodbEntity
 class Sensor(DynamodbEntity):
 
     def __init__(self, mac_address):
-        super().__init__({'mac_address': mac_address})
+        super().__init__({'mac_address': mac_address.upper()})
 
     @property
     def mac_address(self):
