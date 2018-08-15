@@ -114,7 +114,10 @@ class DynamodbEntity(Entity):
         return res[0]
 
     def patch(self, body, create=False):
-        self.validate('PATCH', body)
+        if create:
+            self.validate('PUT', body)
+        else:
+            self.validate('PATCH', body)
 
         try:
             upsert = DynamodbUpdate()
@@ -127,8 +130,7 @@ class DynamodbEntity(Entity):
 
             if create:
                 upsert.set('created_date', datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ"))
-            else:
-                upsert.set('updated_date', datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ"))
+            upsert.set('updated_date', datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ"))
 
             self._get_dynamodb_resource().update_item(
                 Key=self.primary_key,
