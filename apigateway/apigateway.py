@@ -71,27 +71,29 @@ def handle_application_exception(e):
 def handler(event, context):
     print(json.dumps(event))
 
-    # Trim trailing slashes from urls
-    event['path'] = event['path'].rstrip('/')
-
-    # Trim semantic versioning string from urls, if present
-    event['path'] = event['path'].replace('/hardware/latest/', '/hardware/').replace('/hardware/1.0.0/', '/hardware/')
+    # Strip mount point and version information from the path
+    path_match = re.match(f'^/(?P<mount>({os.environ["SERVICE"]}|v1))(/(?P<version>(\d+(\.\d+)?(\.\d+)?)))?(?P<path>/.+?)/?$', event['path'])
+    if path_match is None:
+        raise Exception('Invalid path')
+    event['path'] = path_match.groupdict()['path']
+    api_version = path_match.groupdict()['version']
 
     # Pass tracing info to X-Ray
     if 'X-Amzn-Trace-Id-Safe' in event['headers']:
         xray_trace = TraceHeader.from_header_str(event['headers']['X-Amzn-Trace-Id-Safe'])
         xray_recorder.begin_segment(
-            name='hardware.{}.fathomai.com'.format(os.environ['ENVIRONMENT']),
+            name='{SERVICE}.{ENVIRONMENT}.fathomai.com'.format(**os.environ),
             traceid=xray_trace.root,
             parent_id=xray_trace.parent
         )
     else:
-        xray_recorder.begin_segment(name='hardware.{}.fathomai.com'.format(os.environ['ENVIRONMENT']))
+        xray_recorder.begin_segment(name='{SERVICE}.{ENVIRONMENT}.fathomai.com'.format(**os.environ))
 
-    xray_recorder.current_segment().put_http_meta('url', 'https://{}{}'.format(event['headers']['Host'], event['path']))
+    xray_recorder.current_segment().put_http_meta('url', f"https://{event['headers']['Host']}/{os.environ['SERVICE']}/{api_version}{event['path']}")
     xray_recorder.current_segment().put_http_meta('method', event['httpMethod'])
     xray_recorder.current_segment().put_http_meta('user_agent', event['headers']['User-Agent'])
     xray_recorder.current_segment().put_annotation('environment', os.environ['ENVIRONMENT'])
+    xray_recorder.current_segment().put_annotation('version', str(api_version))
 
     ret = app(event, context)
     ret['headers'].update({
