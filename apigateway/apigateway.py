@@ -2,6 +2,7 @@ from flask import Response, jsonify
 from flask_lambda import FlaskLambda
 import json
 import os
+import re
 import sys
 import traceback
 
@@ -36,14 +37,10 @@ from routes.accessory import app as accessory_routes
 from routes.sensor import app as sensor_routes
 from routes.firmware import app as firmware_routes
 from routes.misc import app as misc_routes
-app.register_blueprint(accessory_routes, url_prefix='/v1/accessory')
-app.register_blueprint(accessory_routes, url_prefix='/hardware/accessory')
-app.register_blueprint(sensor_routes, url_prefix='/v1/sensor')
-app.register_blueprint(sensor_routes, url_prefix='/hardware/sensor')
-app.register_blueprint(firmware_routes, url_prefix='/v1/firmware')
-app.register_blueprint(firmware_routes, url_prefix='/hardware/firmware')
-app.register_blueprint(misc_routes, url_prefix='/v1/misc')
-app.register_blueprint(misc_routes, url_prefix='/hardware/misc')
+app.register_blueprint(accessory_routes, url_prefix='/accessory')
+app.register_blueprint(sensor_routes, url_prefix='/sensor')
+app.register_blueprint(firmware_routes, url_prefix='/firmware')
+app.register_blueprint(misc_routes, url_prefix='/misc')
 
 
 @app.errorhandler(500)
