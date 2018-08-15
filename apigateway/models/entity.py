@@ -1,6 +1,7 @@
 from abc import abstractmethod
 from boto3.dynamodb.conditions import Key, Attr
 from botocore.exceptions import ClientError
+from datetime import datetime
 from decimal import Decimal
 from functools import reduce
 from operator import iand
@@ -123,6 +124,11 @@ class DynamodbEntity(Entity):
                         upsert.add(key, set(body[key]))
                     else:
                         upsert.set(key, body[key])
+
+            if create:
+                upsert.set('created_date', datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ"))
+            else:
+                upsert.set('updated_date', datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ"))
 
             self._get_dynamodb_resource().update_item(
                 Key=self.primary_key,
