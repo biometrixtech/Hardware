@@ -7,3 +7,5 @@ apigateway/*
 !apigateway/routes
 !apigateway/schemas
 !apigateway/swagger.yaml
+
+lambdas/*/*/
