@@ -1,4 +1,4 @@
-# Hardware API v1.0.0
+# Hardware API v2.0.0
 
 ## Common provisions
 
@@ -128,7 +128,7 @@ The client __must__ submit a request body containing a JSON object with the foll
 * `settings_key` __must__ be a string of between 1 and 256 characters.
 
 ```
-POST /hardware/1.0.0/accessory/1d:3a:42:5d:g5:ea/register HTTP/1.1
+POST /hardware/2_0/accessory/1d:3a:42:5d:g5:ea/register HTTP/1.1
 Host: apis.env.fathomai.com
 Content-Type: application/json
 
@@ -173,7 +173,7 @@ The client __must__ submit a request body containing a JSON object with the foll
 * `password` __must__ be a string containing 8 or more characters, with no leading or trailing spaces.
 
 ```
-POST /hardware/1.0.0/accessory/1d:3a:42:5d:g5:ea/login HTTP/1.1
+POST /hardware/2_0/accessory/1d:3a:42:5d:g5:ea/login HTTP/1.1
 Host: apis.env.fathomai.com
 Content-Type: application/json
 
@@ -241,7 +241,7 @@ The `sensors` field __should__ have exactly three elements.
 Example request:
 
 ```
-POST /hardware/1.0.0/accessory/1d:3a:42:5d:g5:ea/sync HTTP/1.1
+POST /hardware/2_0/accessory/1d:3a:42:5d:g5:ea/sync HTTP/1.1
 Host: apis.env.fathomai.com
 Content-Type: application/json
 Authorization: eyJraWQ...ajBc4VQ
@@ -379,7 +379,7 @@ With the following constraints:
 * The client __may__ not include all of the above fields in the request, but __should__ include at least one.
 
 ```
-PATCH /hardware/1.0.0/sensor/1d:3a:42:5d:g5:ea HTTP/1.1
+PATCH /hardware/2_0/sensor/1d:3a:42:5d:g5:ea HTTP/1.1
 Host: apis.env.fathomai.com
 Content-Type: application/merge-patch+json
 Authorization: ...
@@ -425,7 +425,7 @@ The client __must__ submit a request body containing a JSON object with the foll
 The `sensors` field __should__ contain at least one element.
 
 ```
-PATCH /hardware/1.0.0/sensor HTTP/1.1
+PATCH /hardware/2_0/sensor HTTP/1.1
 Host: apis.env.fathomai.com
 Content-Type: application/merge-patch+json
 Authorization: ...
@@ -476,7 +476,7 @@ This method takes no request body.
 Example request:
 
 ```
-GET /hardware/1.0.0/firmware/accessory/latest HTTP/1.1
+GET /hardware/2_0/firmware/accessory/latest HTTP/1.1
 Host: apis.env.fathomai.com
 Content-Type: application/json
 ```
@@ -519,7 +519,7 @@ This method takes no request body.
 Example request:
 
 ```
-GET /hardware/1.0.0/firmware/accessory/latest/download HTTP/1.1
+GET /hardware/2_0/firmware/accessory/latest/download HTTP/1.1
 Host: apis.env.fathomai.com
 Content-Type: application/json
 ```
@@ -547,7 +547,7 @@ This method takes no request body.
 Example request:
 
 ```
-GET /hardware/1.0.0/misc/time HTTP/1.1
+GET /hardware/2_0/misc/time HTTP/1.1
 Host: apis.env.fathomai.com
 Content-Type: application/json
 ```

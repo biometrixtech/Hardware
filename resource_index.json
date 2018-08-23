@@ -8,6 +8,12 @@
             "s3_filename": "apigateway.zip",
             "src": "apigateway",
             "pip": true 
+        },
+        {
+            "name": "hardware-{ENVIRONMENT}-apigateway-validateauth",
+            "s3_filename": "custom_auth.zip",
+            "src": "lambdas/custom_auth",
+            "pip": true
         }
     ],
     "datastores": [
