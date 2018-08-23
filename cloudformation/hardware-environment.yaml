@@ -15,7 +15,7 @@ Parameters:
 Mappings:
     TemplateVersion:
         Self: { Commit: "da39a3ee5e6b4b0d3255bfef95601890afd80709" }
-        Infrastructure: { Commit: "2d222e78ee364e58b7db1709f89effdf4d1d4c7d" }
+        Infrastructure: { Commit: "75121e414c6725f23e9b2cff9e158f538c61333b" }
 
 Metadata:
     "AWS::CloudFormation::Interface":
@@ -301,6 +301,7 @@ Resources:
                 Variables:
                     COGNITO_USER_POOL_ID: { Ref: "CognitoUserPool" }
                     COGNITO_USER_POOL_CLIENT_ID: { Ref: "CognitoUserPoolClient" }
+                    SERVICE: 'hardware'
                     ENVIRONMENT: { Ref: 'Environment' }
                     AWS_ACCOUNT_ID: { Ref: "AWS::AccountId" }
                     DYNAMODB_FIRMWARE_TABLE_NAME: { Ref: "FirmwareTable" }
@@ -328,8 +329,6 @@ Resources:
                 Environment: { Ref: "Environment" }
                 Service: "apigateway"
                 LambdaArn: { "Fn::GetAtt": [ "ApiGatewayLambda", "Arn" ] }
-                CustomAuthLambdaArn: { "Fn::ImportValue": { "Fn::Sub": "users-${Environment}-CustomAuthLambdaArn" } }
-                CreateCustomDomain: "true"
             Tags:
               - { Key: "Name", Value: { "Fn::Sub": "hardware-${Environment}-apigateway" } }
               - { Key: "Management", Value: "managed" }
