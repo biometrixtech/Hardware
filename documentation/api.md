@@ -1,4 +1,4 @@
-# Hardware API
+# Hardware API v2.0.0
 
 ## Common provisions
 
@@ -40,6 +40,7 @@ The following simple types __may__ be used in responses:
 * `string`, `number`: as defined in the [JSON Schema](http://json-schema.org) standard.
 * `Uuid`: a `string` matching the regular expression `^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`, that is, the string representation of an [RFC 4122](https://tools.ietf.org/html/rfc4122) UUID.
 * `Datetime`: a `string` matching the regular expression `/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(Z|+\d{2}:\d{2})/` and representing a date and time in full [ISO 8601](https://www.iso.org/iso-8601-date-and-time-format.html) format.
+* `DeviceType`: one of the `strings` `accessory`, `hip` or `ankle`.
 * `MacAddress`: a `string` matching the regular expression `/{[0-9a-f]{2}(:[0-9a-f]{2}){5}/`, that is six groups of two hexadecimal characters, separated by colons.
 * `VersionNumber`: a `string` matching the regular expression `/\d+\.\d+(\.\d+)?/`, that is a [Semantic Versioning](https://semver.org/) version number (in either `MAJOR.MINOR.PATCH` or `MAJOR.MINOR` format)
 
@@ -94,7 +95,7 @@ A `Firmware` object __must__ have the following schema:
 
 The following constraints __will__ apply:
 
-* `device_type` __will__ be one of the strings `accessory` or `sensor`.
+* `device_type` __will__ be one of the strings `accessory`, `ankle` or `hip`.
 
 ## Endpoints
 
@@ -127,7 +128,7 @@ The client __must__ submit a request body containing a JSON object with the foll
 * `settings_key` __must__ be a string of between 1 and 256 characters.
 
 ```
-POST /hardware/accessory/1d:3a:42:5d:g5:ea/register HTTP/1.1
+POST /hardware/2_0/accessory/1d:3a:42:5d:g5:ea/register HTTP/1.1
 Host: apis.env.fathomai.com
 Content-Type: application/json
 
@@ -172,7 +173,7 @@ The client __must__ submit a request body containing a JSON object with the foll
 * `password` __must__ be a string containing 8 or more characters, with no leading or trailing spaces.
 
 ```
-POST /hardware/accessory/1d:3a:42:5d:g5:ea/login HTTP/1.1
+POST /hardware/2_0/accessory/1d:3a:42:5d:g5:ea/login HTTP/1.1
 Host: apis.env.fathomai.com
 Content-Type: application/json
 
@@ -240,7 +241,7 @@ The `sensors` field __should__ have exactly three elements.
 Example request:
 
 ```
-POST /hardware/accessory/1d:3a:42:5d:g5:ea/sync HTTP/1.1
+POST /hardware/2_0/accessory/1d:3a:42:5d:g5:ea/sync HTTP/1.1
 Host: apis.env.fathomai.com
 Content-Type: application/json
 Authorization: eyJraWQ...ajBc4VQ
@@ -280,8 +281,8 @@ If the request was successful, the Service __will__ respond with HTTP Status `20
     "accessory": Accessory,
     "sensor": Sensor,
     "latest_firmware": {
-    	"accessory": Firmware,
-    	"sensor": Firmware
+    	DeviceType: Firmware,
+    	...
 	}
 }
 ```
@@ -339,9 +340,14 @@ Example response:
             "version": "1.1",
             "created_date": "2018-02-23T19:34:00Z"
         },
-        "sensor": {
-            "device_type": "sensor",
+        "hip": {
+            "device_type": "hip",
             "version": "1.0",
+            "created_date": "2018-02-23T19:33:00Z"
+        },
+        "ankle": {
+            "device_type": "ankle",
+            "version": "1.2",
             "created_date": "2018-02-23T19:33:00Z"
         }
     }
@@ -373,7 +379,7 @@ With the following constraints:
 * The client __may__ not include all of the above fields in the request, but __should__ include at least one.
 
 ```
-PATCH /hardware/sensor/1d:3a:42:5d:g5:ea HTTP/1.1
+PATCH /hardware/2_0/sensor/1d:3a:42:5d:g5:ea HTTP/1.1
 Host: apis.env.fathomai.com
 Content-Type: application/merge-patch+json
 Authorization: ...
@@ -419,7 +425,7 @@ The client __must__ submit a request body containing a JSON object with the foll
 The `sensors` field __should__ contain at least one element.
 
 ```
-PATCH /hardware/sensor HTTP/1.1
+PATCH /hardware/2_0/sensor HTTP/1.1
 Host: apis.env.fathomai.com
 Content-Type: application/merge-patch+json
 Authorization: ...
@@ -458,8 +464,8 @@ This endpoint allows the client to get information about a firmware version, or 
 
 The client __must__ submit a request to the endpoint `/firmware/{device_type}/{version_number}`, where:
 
-* `device_type` __must__ be either the string `accessory` or `sensor`;
-* `version_number` __must__ be either a VersionNumber or the string "`latest`"
+* `device_type` __must__ be a `DeviceType`;
+* `version_number` __must__ be either a `VersionNumber` or the string "`latest`"
 
 The request method __must__ be `GET`.
 
@@ -470,7 +476,7 @@ This method takes no request body.
 Example request:
 
 ```
-GET /hardware/firmware/accessory/latest HTTP/1.1
+GET /hardware/2_0/firmware/accessory/latest HTTP/1.1
 Host: apis.env.fathomai.com
 Content-Type: application/json
 ```
@@ -499,7 +505,7 @@ This endpoint allows the client to download the binary file for a given firmware
 
 The client __must__ submit a request to the endpoint `/firmware/{device_type}/{version_number}/download`, where:
 
-* `device_type` __must__ be either the string `accessory` or `sensor`;
+* `device_type` __must__ be a `DeviceType`;
 * `version_number` __must__ be either a VersionNumber or the string "`latest`"
 
 The request method __must__ be `GET`.
@@ -513,7 +519,7 @@ This method takes no request body.
 Example request:
 
 ```
-GET /hardware/firmware/accessory/latest/download HTTP/1.1
+GET /hardware/2_0/firmware/accessory/latest/download HTTP/1.1
 Host: apis.env.fathomai.com
 Content-Type: application/json
 ```
@@ -541,7 +547,7 @@ This method takes no request body.
 Example request:
 
 ```
-GET /hardware/misc/time HTTP/1.1
+GET /hardware/2_0/misc/time HTTP/1.1
 Host: apis.env.fathomai.com
 Content-Type: application/json
 ```

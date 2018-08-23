@@ -15,7 +15,7 @@ Parameters:
 Mappings:
     TemplateVersion:
         Self: { Commit: "da39a3ee5e6b4b0d3255bfef95601890afd80709" }
-        Infrastructure: { Commit: "2d222e78ee364e58b7db1709f89effdf4d1d4c7d" }
+        Infrastructure: { Commit: "75121e414c6725f23e9b2cff9e158f538c61333b" }
 
 Metadata:
     "AWS::CloudFormation::Interface":
@@ -183,6 +183,60 @@ Resources:
         DeletionPolicy : "Retain"
 
     ##########################################################################################################
+    ##  AUTHENTICATION
+    ##########################################################################################################
+
+    CustomAuthLambdaExecutionRole:
+        Type: "AWS::IAM::Role"
+        Properties:
+            AssumeRolePolicyDocument:
+                Version: "2012-10-17"
+                Statement:
+                  - Effect: "Allow"
+                    Principal: { Service: [ "lambda.amazonaws.com" ] }
+                    Action: "sts:AssumeRole"
+            ManagedPolicyArns:
+              - "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
+            RoleName: { "Fn::Sub": "hardware-${Environment}-apigateway-authenticate-${AWS::Region}" }
+
+    ValidateAuthLambda:
+        Type: "AWS::Lambda::Function"
+        Properties:
+            Code:
+                S3Bucket: { "Fn::Sub": "biometrix-infrastructure-${AWS::Region}" }
+                S3Key: { "Fn::Sub": [ "lambdas/hardware/${TemplateVersion}/custom_auth.zip", {
+                    TemplateVersion: { "Fn::FindInMap": [ "TemplateVersion", "Self", "Commit" ] }
+                } ] }
+            Environment:
+                Variables:
+                    ENVIRONMENT: { Ref: 'Environment' }
+            Handler: "custom_auth.validate_handler"
+            Runtime: "python3.6"
+            Timeout: "10"
+            Role: { "Fn::GetAtt" : [ "CustomAuthLambdaExecutionRole", "Arn" ] }
+            FunctionName: { "Fn::Sub": "hardware-${Environment}-apigateway-validateauth" }
+            Tags:
+              - { Key: "Name", Value: { "Fn::Sub": "hardware-${Environment}-apigateway-validateauth" } }
+              - { Key: "Management", Value: "managed" }
+              - { Key: "Project", Value: "hardware" }
+              - { Key: "Environment", Value: { Ref: "Environment" } }
+              - { Key: "Service", Value: "apigateway" }
+
+    ValidateAuthExecutionPolicy:
+        Type: "AWS::IAM::ManagedPolicy"
+        Properties:
+            Description: "Allows entities to call the Lambda function to validate authentication tokens"
+            ManagedPolicyName: { "Fn::Sub": "hardware-${Environment}-validateauth" }
+            Path: "/"
+            PolicyDocument:
+                Version: "2012-10-17"
+                Statement:
+                  - Action:
+                      - "lambda:InvokeFunction"
+                    Effect: "Allow"
+                    Resource: { "Fn::GetAtt": [ "ValidateAuthLambda", "Arn" ] }
+
+    ##########################################################################################################
     ##  API GATEWAY
     ##########################################################################################################
 
@@ -198,7 +252,9 @@ Resources:
             ManagedPolicyArns:
               - "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
               - "arn:aws:iam::aws:policy/AWSXrayWriteOnlyAccess"
-              - { "Fn::Sub": "arn:aws:iam::${AWS::AccountId}:policy/infrastructure-${Environment}-querypostgres" }
+              - { "Fn::ImportValue": { "Fn::Sub": "QuerypostgresPolicyArn-${Environment}" } }
+              - { "Fn::ImportValue": { "Fn::Sub": "UsersValidateAuthPolicyArn-${Environment}" } }
+              - { Ref: "ValidateAuthExecutionPolicy" }
             Policies:
               - PolicyName: "default"
                 PolicyDocument:
@@ -231,11 +287,6 @@ Resources:
                         Resource:
                           - { "Fn::GetAtt": [ "FirmwareS3Bucket", "Arn" ] }
                           - { "Fn::Sub": "${FirmwareS3Bucket.Arn}/*" }
-
-                      - Action:
-                          - "lambda:InvokeFunction"
-                        Effect: "Allow"
-                        Resource: { "Fn::Sub": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:users-${Environment}-apigateway-authenticate" }
             RoleName: { "Fn::Sub": "hardware-${Environment}-apigateway-${AWS::Region}" }
 
     ApiGatewayLambda:
@@ -250,6 +301,7 @@ Resources:
                 Variables:
                     COGNITO_USER_POOL_ID: { Ref: "CognitoUserPool" }
                     COGNITO_USER_POOL_CLIENT_ID: { Ref: "CognitoUserPoolClient" }
+                    SERVICE: 'hardware'
                     ENVIRONMENT: { Ref: 'Environment' }
                     AWS_ACCOUNT_ID: { Ref: "AWS::AccountId" }
                     DYNAMODB_FIRMWARE_TABLE_NAME: { Ref: "FirmwareTable" }
@@ -277,8 +329,6 @@ Resources:
                 Environment: { Ref: "Environment" }
                 Service: "apigateway"
                 LambdaArn: { "Fn::GetAtt": [ "ApiGatewayLambda", "Arn" ] }
-                CustomAuthLambdaArn: { "Fn::ImportValue": { "Fn::Sub": "users-${Environment}-CustomAuthLambdaArn" } }
-                CreateCustomDomain: "true"
             Tags:
               - { Key: "Name", Value: { "Fn::Sub": "hardware-${Environment}-apigateway" } }
               - { Key: "Management", Value: "managed" }
@@ -290,3 +340,15 @@ Resources:
                 TemplateVersion: { "Fn::FindInMap": [ "TemplateVersion", "Infrastructure", "Commit" ] }
             } ] }
             TimeoutInMinutes: 30
+
+    ##########################################################################################################
+    ##  OUTPUTS
+    ##########################################################################################################
+
+Outputs:
+
+    ValidateAuthPolicyArn:
+        Description: "The ARN of the validateauth IAM Policy"
+        Value: { Ref: "ValidateAuthExecutionPolicy" }
+        Export:
+            Name: { "Fn::Sub": "HardwareValidateAuthPolicyArn-${Environment}" }
