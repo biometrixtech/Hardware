@@ -13,12 +13,19 @@
             "name": "hardware-{ENVIRONMENT}-apigateway-validateauth",
             "s3_filename": "custom_auth.zip",
             "src": "lambdas/custom_auth",
-            "pip": true
+            "pip": true,
+            "publish_tags": true
         }
     ],
     "datastores": [
         { "type": "dynamodb.table", "name": "hardware-{ENVIRONMENT}-firmware" },
         { "type": "s3.bucket", "name": "biometrix-hardware-{ENVIRONMENT}-{REGION}" },
         { "type": "cognito.userpool", "name": "hardware-{ENVIRONMENT}-accessories" }
+    ],
+    "apigateways": [
+        {
+            "name": "hardware-{ENVIRONMENT}-apigateway",
+            "lambda_function_name": "hardware-{ENVIRONMENT}-apigateway-execute"
+        }
     ]
 }
