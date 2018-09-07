@@ -15,7 +15,7 @@ Parameters:
 Mappings:
     TemplateVersion:
         Self: { Commit: "da39a3ee5e6b4b0d3255bfef95601890afd80709" }
-        Infrastructure: { Commit: "75121e414c6725f23e9b2cff9e158f538c61333b" }
+        Infrastructure: { Commit: "1bbee7413deba8a5920c91339f0324fa8a631d84" }
 
 Metadata:
     "AWS::CloudFormation::Interface":
@@ -321,25 +321,25 @@ Resources:
             TracingConfig:
                 Mode: "Active"
 
-    ApigatewayStack:
-        Type: "AWS::CloudFormation::Stack"
-        Properties:
-            Parameters:
-                Project: "hardware"
-                Environment: { Ref: "Environment" }
-                Service: "apigateway"
-                LambdaArn: { "Fn::GetAtt": [ "ApiGatewayLambda", "Arn" ] }
-            Tags:
-              - { Key: "Name", Value: { "Fn::Sub": "hardware-${Environment}-apigateway" } }
-              - { Key: "Management", Value: "managed" }
-              - { Key: "Project", Value: "hardware" }
-              - { Key: "Environment", Value: { Ref: "Environment" } }
-              - { Key: "Service", Value: "apigateway" }
-            TemplateURL: { "Fn::Sub": [ "https://s3.amazonaws.com/${InfrastructureBucketName}/cloudformation/infrastructure/${TemplateVersion}/apigateway.yaml", {
-                InfrastructureBucketName: { "Fn::ImportValue": "InfrastructureBucketName" },
-                TemplateVersion: { "Fn::FindInMap": [ "TemplateVersion", "Infrastructure", "Commit" ] }
-            } ] }
-            TimeoutInMinutes: 30
+#    ApigatewayStack:
+#        Type: "AWS::CloudFormation::Stack"
+#        Properties:
+#            Parameters:
+#                Project: "hardware"
+#                Environment: { Ref: "Environment" }
+#                Service: "apigateway"
+#                LambdaArn: { "Fn::GetAtt": [ "ApiGatewayLambda", "Arn" ] }
+#            Tags:
+#              - { Key: "Name", Value: { "Fn::Sub": "hardware-${Environment}-apigateway" } }
+#              - { Key: "Management", Value: "managed" }
+#              - { Key: "Project", Value: "hardware" }
+#              - { Key: "Environment", Value: { Ref: "Environment" } }
+#              - { Key: "Service", Value: "apigateway" }
+#            TemplateURL: { "Fn::Sub": [ "https://s3.amazonaws.com/${InfrastructureBucketName}/cloudformation/infrastructure/${TemplateVersion}/apigateway.yaml", {
+#                InfrastructureBucketName: { "Fn::ImportValue": "InfrastructureBucketName" },
+#                TemplateVersion: { "Fn::FindInMap": [ "TemplateVersion", "Infrastructure", "Commit" ] }
+#            } ] }
+#            TimeoutInMinutes: 30
 
     ##########################################################################################################
     ##  OUTPUTS
