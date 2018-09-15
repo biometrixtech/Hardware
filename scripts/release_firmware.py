@@ -2,11 +2,12 @@
 #
 # Example:
 #
-#   release_firmware.py \
-#       --region us-west-2 \
-#       --environment dev \
-#       --devicetype accessory \
-#       --version 1.42 \
+#   release_firmware.py                                                           \
+#       --region us-west-2                                                        \
+#       --environment dev                                                         \
+#       /full/path/to/firmware/binary.bin                                         \
+#       accessory                                                                 \
+#       1.42.0                                                                    \
 #       --notes "This version fixes a bug where the accessory sometimes explodes" \
 #       /full/path/to/firmware/binary.bin
 #
@@ -21,8 +22,7 @@ try:
     from colorama import Fore, Style
     from semver import VersionInfo
 except ImportError:
-    print('You must install the `boto3`, `colorama` and `semver` pip modules')
-    raise Exception()  # Just for static code analysis
+    raise ImportError('You must install the `boto3`, `colorama` and `semver` pip packages to use this script')
 
 
 class ApplicationException(Exception):
@@ -134,7 +134,10 @@ def main():
     if not os.path.exists(filepath):
         raise ApplicationException(f'File {filepath} does not exist')
 
-    version = VersionInfo.parse(args.version)
+    try:
+        version = VersionInfo.parse(args.version)
+    except ValueError:
+        raise ApplicationException('Version must be a valid semantic version number')
 
     s3_bucket = boto3.resource('s3', region_name=args.region).Bucket(f'biometrix-hardware-{args.environment}-{args.region}')
     ddb_table = boto3.resource('dynamodb', region_name=args.region).Table(f'hardware-{args.environment}-firmware')
@@ -171,11 +174,25 @@ def main():
 
 if __name__ == '__main__':
     def version_number(x):
-        if not re.match('\d+\.\d+(\.\d+)?', x):
-            raise argparse.ArgumentTypeError('Version number must be in the format NN.NN(.NN)')
+        try:
+            VersionInfo.parse(x)
+        except ValueError:
+            raise argparse.ArgumentTypeError('Version number must be a semantic version number')
         return x
 
-    parser = argparse.ArgumentParser(description='Upload a new firmware version')
+    epilog = '''
+Examples:
+    %(prog)s /path/to/binary.bin accessory 1.42.0-test.1
+    %(prog)s /path/to/binary.bin accessory 1.42.0 --notes "Exciting new features"
+    %(prog)s /path/to/binary.bin accessory 1.42.0 --environment production
+    %(prog)s /path/to/binary.bin accessory 1.42.1 --notes "Fixes a bug in 1.42.0 where the accessory would sometimes explode"
+'''
+
+    parser = argparse.ArgumentParser(
+        description='Uploads a new firmware version',
+        epilog=epilog,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
     parser.add_argument('--region', '-r',
                         type=str,
                         help='AWS Region',
@@ -188,16 +205,16 @@ if __name__ == '__main__':
                         default='dev')
     parser.add_argument('filepath',
                         type=str,
-                        help='The new firmware file')
+                        help='Path to the new firmware binary')
     parser.add_argument('devicetype',
                         type=str,
-                        help='Device type',
+                        help='The device type',
                         choices=['accessory', 'ankle', 'hip'])
     parser.add_argument('version',
-                        help='Version number',
+                        help='Version number.  This must be a semantic version (ie `major.minor.patch` or `major.minor.patch-test.N`)',
                         type=version_number)
     parser.add_argument('--notes',
-                        help='Version release notes',
+                        help='Optional version release notes',
                         default='')
 
     args = parser.parse_args()
