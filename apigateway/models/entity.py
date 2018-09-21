@@ -149,25 +149,21 @@ class DynamodbEntity(Entity):
     def _get_dynamodb_resource(self):
         raise NotImplementedError
 
-    def _query_dynamodb(self, key_condition_expression, limit=10000, scan_index_forward=True, exclusive_start_key=None):
+    def _query_dynamodb(self, key_condition_expression, exclusive_start_key=None):
         if exclusive_start_key is not None:
             ret = self._get_dynamodb_resource().query(
                 Select='ALL_ATTRIBUTES',
-                Limit=limit,
                 KeyConditionExpression=key_condition_expression,
                 ExclusiveStartKey=exclusive_start_key,
-                ScanIndexForward=scan_index_forward,
             )
         else:
             ret = self._get_dynamodb_resource().query(
                 Select='ALL_ATTRIBUTES',
-                Limit=limit,
                 KeyConditionExpression=key_condition_expression,
-                ScanIndexForward=scan_index_forward,
             )
         if 'LastEvaluatedKey' in ret:
             # There are more records to be scanned
-            return ret['Items'] + self._query_dynamodb(key_condition_expression, limit, scan_index_forward, ret['LastEvaluatedKey'])
+            return ret['Items'] + self._query_dynamodb(key_condition_expression, ret['LastEvaluatedKey'])
         else:
             # No more items
             return ret['Items']

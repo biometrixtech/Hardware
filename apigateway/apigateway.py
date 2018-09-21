@@ -34,6 +34,8 @@ class ApiResponse(Response):
 class VersionNumberConverter(BaseConverter):
     def to_python(self, value):
         try:
+            if value.lower() == 'latest':
+                return 'latest'
             return VersionInfo.parse(value)
         except Exception:
             raise ValidationError('Version number must be a semantic version')
