@@ -1,5 +1,7 @@
 from flask import Response, jsonify
 from flask_lambda import FlaskLambda
+from semver import VersionInfo
+from werkzeug.routing import BaseConverter, ValidationError
 import json
 import os
 import re
@@ -29,9 +31,23 @@ class ApiResponse(Response):
         return super().force_type(rv, environ)
 
 
+class VersionNumberConverter(BaseConverter):
+    def to_python(self, value):
+        try:
+            if value.lower() == 'latest':
+                return 'latest'
+            return VersionInfo.parse(value)
+        except Exception:
+            raise ValidationError('Version number must be a semantic version')
+
+    def to_url(self, value):
+        return str(value)
+
+
 app = FlaskLambda(__name__)
 app.response_class = ApiResponse
 app.url_map.strict_slashes = False
+app.url_map.converters['semver'] = VersionNumberConverter
 
 from routes.accessory import app as accessory_routes
 from routes.sensor import app as sensor_routes
