@@ -85,6 +85,10 @@ class Accessory(Entity):
                 ],
                 MessageAction='SUPPRESS',
             )
+
+            # Log in straight away so there's no risk of the Cognito user expiring
+            self.login(body['password'])
+
             return self.get()
 
         except ClientError as e:
