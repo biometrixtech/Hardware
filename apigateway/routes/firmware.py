@@ -1,13 +1,13 @@
-from aws_xray_sdk.core import xray_recorder
 from botocore.exceptions import ClientError
-from flask import Blueprint, request
+from flask import Blueprint
 from semver import VersionInfo
 import base64
 import boto3
 import os
 
-from decorators import authentication_required
-from exceptions import ApplicationException, InvalidSchemaException, DuplicateEntityException
+from fathomapi.utils.decorators import require
+from fathomapi.utils.exceptions import ApplicationException, InvalidSchemaException, DuplicateEntityException
+from fathomapi.utils.xray import xray_recorder
 from models.firmware import Firmware
 
 app = Blueprint('firmware', __name__)
@@ -43,20 +43,15 @@ def handle_firmware_download(device_type, version):
 
 
 @app.route('/<device_type>/<semver:version>', methods=['POST'])
-@authentication_required
+@require.authenticated.service
 @xray_recorder.capture('routes.firmware.upload')
 def handle_firmware_upload(device_type, version):
     firmware = Firmware(device_type, version)
     if firmware.exists():
         raise DuplicateEntityException()
 
-    # Upload the firmware file
-    s3_key = f'firmware/{args.devicetype}/{args.version}'
-    s3_bucket.put_object(Key=s3_key, Body=open(filepath, 'rb'))
-    cprint(f'Uploaded firware file from {filepath} to s3://{s3_bucket.name}/{s3_key}', colour=Fore.GREEN)
-
-    firmware.create(request.json)
-    return {"status": "success"}, 201
+    # TODO
+    raise ApplicationException(501, 'Not Implemented', 'Firmware upload not implemented yet')
 
 
 def validate_semver_tag(new_tag, old_tags):
