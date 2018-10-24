@@ -42,7 +42,7 @@ def upload_lambda_bundle(local_filepath, s3_filename, pip_install=True):
     else:
         # Install pip requirements first
         if pip_install:
-            subprocess.check_call('python3 -m pip install -t {f} -r {f}/pip_requirements'.format(f=local_filepath), shell=True)
+            subprocess.check_call('python3 -m pip install --upgrade -t {f} -r {f}/pip_requirements'.format(f=local_filepath), shell=True)
 
         # Write the version into the bundle
         with open(os.path.join(local_filepath, 'version'), "w") as file:
