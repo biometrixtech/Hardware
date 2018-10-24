@@ -1,10 +1,11 @@
 from boto3.dynamodb.conditions import Key
+from semver import VersionInfo
 import boto3
 import json
 import os
 
 from models.entity import DynamodbEntity
-from exceptions import NoSuchEntityException
+from fathomapi.utils.exceptions import NoSuchEntityException
 
 
 class Firmware(DynamodbEntity):
@@ -31,13 +32,16 @@ class Firmware(DynamodbEntity):
 
     def get(self):
         if self.version.upper() == 'LATEST':
-            res = self._query_dynamodb(Key('device_type').eq(self.device_type), 1, False)
+            res = self._query_dynamodb(Key('device_type').eq(self.device_type))
         else:
             res = self._query_dynamodb(Key('device_type').eq(self.device_type) & Key('version').eq(self.version))
 
         if len(res) == 0:
             raise NoSuchEntityException()
-        return res[0]
+        elif len(res) == 1:
+            return res[0]
+        else:
+            return max(res, key=lambda x: VersionInfo.parse(x['version']))
 
     def patch(self, body, upsert=True):
         if upsert:

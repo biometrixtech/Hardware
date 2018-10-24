@@ -1,17 +1,16 @@
-from aws_xray_sdk.core import xray_recorder
+from flask import request, Blueprint
 import datetime
 
-from exceptions import InvalidSchemaException
-from flask import request, Blueprint
+from fathomapi.utils.decorators import require
+from fathomapi.utils.xray import xray_recorder
 
-from decorators import authentication_required
 from models.sensor import Sensor
 
 app = Blueprint('sensor', __name__)
 
 
 @app.route('/<mac_address>', methods=['PATCH'])
-@authentication_required
+@require.authenticated.any
 @xray_recorder.capture('routes.sensor.patch')
 def handle_sensor_patch(mac_address):
     xray_recorder.current_segment().put_annotation('sensor_id', mac_address)
@@ -20,15 +19,15 @@ def handle_sensor_patch(mac_address):
 
 
 @app.route('/', methods=['PATCH'])
-@authentication_required
+@require.authenticated.any
+@require.body({'sensors': list})
 @xray_recorder.capture('routes.sensor.multipatch')
 def handle_sensor_multipatch():
-    if 'sensors' not in request.json or not isinstance(request.json['sensors'], list):
-        raise InvalidSchemaException('Missing required parameter sensors')
     ret = [_patch_sensor(s['mac_address'], s) for s in request.json['sensors']]
     return {'sensors': ret}
 
 
+@xray_recorder.capture('routes.sensor._patch_sensor')
 def _patch_sensor(mac_address, body):
     sensor = Sensor(mac_address)
     if not sensor.exists():

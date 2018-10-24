@@ -1,4 +1,4 @@
-# Hardware API v2.0.0
+# Hardware API v2.0.1
 
 ## Common provisions
 
@@ -247,7 +247,7 @@ Content-Type: application/json
 Authorization: eyJraWQ...ajBc4VQ
 
 {
-    "event_date": "2016-12-09T08:21:15.123+00:00",
+    "event_date": "2016-12-09T08:21:15Z",
     "accessory": {
       "state": "0x01",
       "battery_level": 0.89,
@@ -257,7 +257,7 @@ Authorization: eyJraWQ...ajBc4VQ
     },
     "sensors": [
     	{
-        	"id": "aa:bb:cc:dd:ee:ff",
+        	"mac_address": "aa:bb:cc:dd:ee:ff",
 	        "battery_level": 0.57,
 	        "memory_level": 0.57,
 	        "firmware_version": "1.2",

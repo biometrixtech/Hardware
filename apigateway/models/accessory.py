@@ -5,7 +5,7 @@ import json
 import os
 
 from models.entity import Entity
-from exceptions import DuplicateEntityException, InvalidSchemaException, NoSuchEntityException
+from fathomapi.utils.exceptions import DuplicateEntityException, InvalidSchemaException, NoSuchEntityException
 
 cognito_client = boto3.client('cognito-idp')
 
@@ -85,6 +85,10 @@ class Accessory(Entity):
                 ],
                 MessageAction='SUPPRESS',
             )
+
+            # Log in straight away so there's no risk of the Cognito user expiring
+            self.login(body['password'])
+
             return self.get()
 
         except ClientError as e:
