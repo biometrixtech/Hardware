@@ -20,7 +20,7 @@ def handle_sensor_patch(mac_address):
 
 @app.route('/', methods=['PATCH'])
 @require.authenticated.any
-@require.body({'sensors', list})
+@require.body({'sensors': list})
 @xray_recorder.capture('routes.sensor.multipatch')
 def handle_sensor_multipatch():
     ret = [_patch_sensor(s['mac_address'], s) for s in request.json['sensors']]
