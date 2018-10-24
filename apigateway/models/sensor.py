@@ -4,7 +4,7 @@ import datetime
 
 from querypostgres import query_postgres
 from models.entity import Entity
-from exceptions import NoSuchEntityException
+from fathomapi.utils.exceptions import NoSuchEntityException
 
 
 class Sensor(Entity):

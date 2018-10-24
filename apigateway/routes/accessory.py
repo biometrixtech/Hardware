@@ -1,12 +1,12 @@
-from aws_xray_sdk.core import xray_recorder
-from models.accessory import Accessory
-from exceptions import ApplicationException, InvalidSchemaException, NoSuchEntityException, UnauthorizedException
-from flask import request, Blueprint
 from datetime import datetime
+from flask import request, Blueprint
 import boto3
 import os
 
-from decorators import authentication_required
+from fathomapi.utils.decorators import require
+from fathomapi.utils.exceptions import InvalidSchemaException
+from fathomapi.utils.xray import xray_recorder
+from models.accessory import Accessory
 from models.firmware import Firmware
 from models.sensor import Sensor
 
@@ -23,7 +23,7 @@ def handle_accessory_register(mac_address):
 
 
 @app.route('/<mac_address>', methods=['GET'])
-@authentication_required
+@require.authenticated.any
 @xray_recorder.capture('routes.accessory.get')
 def handle_accessory_get(mac_address):
     xray_recorder.current_segment().put_annotation('accessory_id', mac_address)
@@ -32,7 +32,7 @@ def handle_accessory_get(mac_address):
 
 
 @app.route('/<mac_address>', methods=['PATCH'])
-@authentication_required
+@require.authenticated.any
 @xray_recorder.capture('routes.accessory.patch')
 def handle_accessory_patch(mac_address):
     xray_recorder.current_segment().put_annotation('accessory_id', mac_address)
@@ -45,11 +45,10 @@ def handle_accessory_patch(mac_address):
 
 
 @app.route('/<mac_address>/login', methods=['POST'])
+@require.body({'password': str})
 @xray_recorder.capture('routes.accessory.login')
 def handle_accessory_login(mac_address):
     xray_recorder.current_segment().put_annotation('accessory_id', mac_address)
-    if 'password' not in request.json:
-        raise InvalidSchemaException('Missing required request parameters: password')
     accessory = Accessory(mac_address)
     return {
         'username': mac_address,
@@ -58,21 +57,18 @@ def handle_accessory_login(mac_address):
 
 
 @app.route('/<mac_address>/sync', methods=['POST'])
-@authentication_required
+@require.authenticated.any
+@require.body({'event_date': str, 'accessory': str, 'sensors': list})
 @xray_recorder.capture('routes.accessory.sync')
 def handle_accessory_sync(mac_address):
     xray_recorder.current_segment().put_annotation('accessory_id', mac_address)
     res = {}
 
-    for required_parameter in ['event_date', 'accessory', 'sensors']:
-        if required_parameter not in request.json:
-            raise ApplicationException(400, 'InvalidSchema', 'Missing required request parameters: {}'.format(required_parameter))
-
     # event_date must be in correct format
     try:
         datetime.strptime(request.json['event_date'], "%Y-%m-%dT%H:%M:%SZ")
     except ValueError:
-        raise ApplicationException(400, 'InvalidSchema', "event_date parameter must be in '%Y-%m-%dT%H:%M:%SZ' format")
+        raise InvalidSchemaException("event_date parameter must be in '%Y-%m-%dT%H:%M:%SZ' format")
 
     accessory = Accessory(mac_address)
     res['accessory'] = accessory.patch(request.json['accessory'])
@@ -92,6 +88,7 @@ def handle_accessory_sync(mac_address):
     return res
 
 
+@xray_recorder.capture('routes.accessory._save_sync_record')
 def _save_sync_record(mac_address, event_date, body):
     item = {
         'accessory_mac_address': mac_address.upper(),

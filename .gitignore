@@ -5,10 +5,10 @@ apigateway/*
 !apigateway/pip_requirements
 !apigateway/routes
 !apigateway/models
-apigateway/flask_lambda.py
 apigateway/itsdangerous.py
 !apigateway/schemas
 apigateway/semver.py
+apigateway/six.py
 !apigateway/swagger.yaml
 
 lambdas/*/*/

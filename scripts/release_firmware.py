@@ -85,6 +85,8 @@ def validate_semver_tag(new_tag, old_tags):
             elif old_tag.minor != new_tag.minor:
                 # It's ok to patch an old minor release when a new minor release exists
                 pass
+            elif args.force:
+                cprint(f"Shouldn't be releasing {new_tag} because a later version {old_tag} already exists.")
             else:
                 raise ApplicationException(f'Cannot release {new_tag} because a later version {old_tag} already exists.')
 
@@ -94,8 +96,12 @@ def validate_semver_tag(new_tag, old_tags):
         for old_tag in old_tags:
             if old_tag >= previous_tag:
                 break
+
         else:
-            raise ApplicationException(f'Cannot release {new_tag} because it skips (at least) version {previous_tag}.')
+            if args.force:
+                cprint(f"Shouldn't be releasing {new_tag} because it skips (at least) version {previous_tag}.", colour=Fore.RED)
+            else:
+                raise ApplicationException(f'Cannot release {new_tag} because it skips (at least) version {previous_tag}.')
 
     if args.environment == 'production' and new_tag.prerelease is not None:
         raise ApplicationException('Pre-release versions (ie with build suffixes) cannot be deployed to production')
@@ -216,6 +222,11 @@ Examples:
     parser.add_argument('--notes',
                         help='Optional version release notes',
                         default='')
+    parser.add_argument('--force', '-f',
+                        help='Override sanity checks',
+                        action='store_true',
+                        default=False,
+                        dest='force')
 
     args = parser.parse_args()
 

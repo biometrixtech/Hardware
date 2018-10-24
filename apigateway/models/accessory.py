@@ -5,7 +5,7 @@ import json
 import os
 
 from models.entity import Entity
-from exceptions import DuplicateEntityException, InvalidSchemaException, NoSuchEntityException
+from fathomapi.utils.exceptions import DuplicateEntityException, InvalidSchemaException, NoSuchEntityException
 
 cognito_client = boto3.client('cognito-idp')
 
