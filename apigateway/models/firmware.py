@@ -5,7 +5,7 @@ import json
 import os
 
 from models.entity import DynamodbEntity
-from exceptions import NoSuchEntityException
+from fathomapi.utils.exceptions import NoSuchEntityException
 
 
 class Firmware(DynamodbEntity):

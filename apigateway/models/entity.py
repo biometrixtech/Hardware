@@ -7,7 +7,7 @@ from operator import iand
 import json
 
 from dynamodbupdate import DynamodbUpdate
-from exceptions import InvalidSchemaException, NoSuchEntityException, DuplicateEntityException
+from fathomapi.utils.exceptions import InvalidSchemaException, NoSuchEntityException, DuplicateEntityException
 
 
 class Entity:
