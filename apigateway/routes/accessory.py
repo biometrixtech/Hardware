@@ -4,7 +4,7 @@ import boto3
 import os
 
 from fathomapi.utils.decorators import require
-from fathomapi.utils.exceptions import InvalidSchemaException
+from fathomapi.utils.exceptions import InvalidSchemaException, NoSuchEntityException
 from fathomapi.utils.xray import xray_recorder
 from models.accessory import Accessory
 from models.firmware import Firmware
@@ -81,10 +81,13 @@ def handle_accessory_sync(mac_address):
     # Save the data in a time-rolling ddb log table
     _save_sync_record(mac_address, request.json['event_date'], res)
 
-    res['latest_firmware'] = {
-        'accessory_version': Firmware('accessory', 'latest').get()['version'],
-        'sensor_version': Firmware('sensor', 'latest').get()['version']
-    }
+    res['latest_firmware'] = {}
+    for firmware_type in ['accessory', 'ankle', 'hip', 'sensor']:
+        try:
+            res['latest_firmware'][f'{firmware_type}_version'] = Firmware(firmware_type, 'latest').get()['version']
+        except NoSuchEntityException:
+            res['latest_firmware'][f'{firmware_type}_version'] = None
+
     return res
 
 
