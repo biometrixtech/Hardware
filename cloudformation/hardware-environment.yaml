@@ -152,6 +152,23 @@ Resources:
                 WriteCapacityUnits: 1
 
     ##########################################################################################################
+    ##  SENSOR
+    ##########################################################################################################
+
+    SensorTable:
+        Type: "AWS::DynamoDB::Table"
+        Properties:
+            TableName: { "Fn::Sub": "hardware-${Environment}-sensor" }
+            AttributeDefinitions:
+              - { AttributeName: "mac_address", AttributeType: "S" }
+            KeySchema:
+              - { AttributeName: "mac_address", KeyType: "HASH" }
+            ProvisionedThroughput:
+                ReadCapacityUnits: 1
+                WriteCapacityUnits: 1
+        DeletionPolicy : "Retain"
+
+    ##########################################################################################################
     ##  FIRMWARE
     ##########################################################################################################
 
@@ -278,6 +295,7 @@ Resources:
                         Effect: "Allow"
                         Resource:
                           - { "Fn::GetAtt": [ "FirmwareTable", "Arn" ] }
+                          - { "Fn::GetAtt": [ "SensorTable", "Arn" ] }
                           - { "Fn::GetAtt": [ "AccessorySyncLogTable", "Arn" ] }
 
                       - Action:
@@ -305,6 +323,7 @@ Resources:
                     ENVIRONMENT: { Ref: 'Environment' }
                     AWS_ACCOUNT_ID: { Ref: "AWS::AccountId" }
                     DYNAMODB_FIRMWARE_TABLE_NAME: { Ref: "FirmwareTable" }
+                    DYNAMODB_SENSOR_TABLE_NAME: { Ref: "SensorTable" }
                     DYNAMODB_ACCESSORYSYNCLOG_TABLE_NAME: { Ref: "AccessorySyncLogTable" }
                     S3_FIRMWARE_BUCKET_NAME: { Ref: "FirmwareS3Bucket" }
             Handler: "apigateway.handler"
