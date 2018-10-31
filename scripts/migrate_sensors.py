@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # Migrate sensors from postgres to dynamodb
 
+from colorama import Style, Fore
 import argparse
 import boto3
 import json
@@ -11,10 +12,31 @@ aws_account_id = '887689817172'
 jwt = None
 
 
+def cprint(*pargs, **kwargs):
+    """
+    Print a string to the terminal with colour
+
+    :param pargs: args to print()
+    :param kwargs: kwargs to print()
+    """
+    if 'colour' in kwargs:
+        print(kwargs['colour'], end="")
+        del kwargs['colour']
+
+        end = kwargs.get('end', '\n')
+        kwargs['end'] = ''
+        print(*pargs, **kwargs)
+
+        print(Style.RESET_ALL, end=end)
+
+    else:
+        print(*pargs, **kwargs)
+
+
 def _get_service_token():
     global jwt
     if jwt is None:
-        res = invoke_lambda(f'users-{args.environment}-serviceauth')
+        res = invoke_lambda(f'users-{args.environment}-apigateway-serviceauth')
         jwt = res['token']
     return jwt
 
@@ -42,8 +64,6 @@ def query_postgres(query, parameters):
 
 
 def make_request(url, payload):
-    headers = {'Authorization': jwt, 'Accept': 'application/json'}
-    res = requests.put(url, json=payload, headers=headers)
     return res.status_code
 
 
@@ -52,19 +72,26 @@ def main():
     print('{} sensors to migrate'.format(len(sensors)))
 
     for i, sensor in enumerate(sensors):
-        url = f"https://apis.{args.environment}.fathomai.com/hardware/2_0/sensor/{sensor['id']}"
+        url = f"https://apis.{args.environment}.fathomai.com/hardware/latest/sensor/{sensor['id']}"
         payload = {
             "mac_address": sensor['id'],
             "battery_level": None,
-            "memory_level": str(sensor['memory_level']),
+            "memory_level": str(sensor['memory_level'] or 0),
             "firmware_version": sensor['firmware_version'] or '0.0.0',
             "hardware_model": sensor['hw_model'],
             "created_date": sensor['created_at'],
             "updated_date": sensor['updated_at'],
             "last_user_id": sensor['last_user_id'],
         }
-        status = make_request(url, {k: v for k, v in payload.items() if v is not None})
-        print(f'{url} --> {status}')
+        headers = {'Authorization': _get_service_token(), 'Accept': 'application/json'}
+        res = requests.put(url, json={k: v for k, v in payload.items() if v is not None}, headers=headers)
+        if res.status_code == 200:
+            cprint(f'{url} --> {res.status_code}', colour=Fore.GREEN)
+        else:
+            cprint(f'{url} --> {res.status_code}', colour=Fore.RED)
+            cprint(json.dumps(payload, indent=4), colour=Fore.LIGHTRED_EX)
+            cprint(res.json(), colour=Fore.RED)
+            break
 
 
 if __name__ == '__main__':
