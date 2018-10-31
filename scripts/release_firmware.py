@@ -79,10 +79,10 @@ def validate_semver_tag(new_tag, old_tags):
         if old_tag == new_tag:
             raise ApplicationException(f'Release {new_tag} already exists')
         elif old_tag > new_tag:
-            if old_tag.major != new_tag.major:
+            if old_tag.major != new_tag.major and new_tag.major != 0:
                 # It's ok to prepare a legacy release
                 pass
-            elif old_tag.minor != new_tag.minor:
+            elif old_tag.minor != new_tag.minor and new_tag.major != 0:
                 # It's ok to patch an old minor release when a new minor release exists
                 pass
             elif args.force:
@@ -155,8 +155,9 @@ def main():
             released_versions.append(VersionInfo.parse(firmware['version']))
         except ValueError:
             cprint(f"Existing release '{firmware['version']}' is not a valid semantic version", colour=Fore.YELLOW)
+    print(released_versions)
     validate_semver_tag(version, released_versions)
-
+    return
     # Upload the firmware file
     s3_key = f'firmware/{args.devicetype}/{args.version}'
     s3_bucket.put_object(Key=s3_key, Body=open(filepath, 'rb'))
