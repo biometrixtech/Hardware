@@ -1,4 +1,4 @@
-# Hardware API v2.0.1
+# Hardware API v2.0.2
 
 ## Common provisions
 
@@ -352,7 +352,88 @@ Example response:
         }
     }
 }
+
 ```
+#### Get
+
+This endpoint can be called to get the current state of an accessory.
+
+##### Query String
+ 
+The client __must__ submit a request to the endpoint `/accessory/{mac_address}`, where `mac_address` __must__ be a MacAddress. It __should__ correspond to the MAC Address of the accessory.  The  request method __must__ be `GET`.  
+
+##### Request
+
+Theis endpoint takes no method body.
+
+Example request:
+
+```
+GET /hardware/2_0/accessory/1d:3a:42:5d:g5:ea HTTP/1.1
+Host: apis.env.fathomai.com
+Content-Type: application/json
+Authorization: eyJraWQ...ajBc4VQ
+```
+
+##### Responses
+ 
+If the request was successful, the Service __will__ respond with HTTP Status `200 OK`, and with a body with the following syntax:
+ 
+```
+{
+    "accessory": Accessory
+}
+```
+
+Example response:
+
+```
+{
+    "accessory": {
+        "id": "1d:3a:42:5d:g5:ea",
+        "state": "0x01",
+        "battery_level": 0.89,
+        "memory_level": 0.89,
+        "firmware_version": "2.3.2",
+        "bluetooth_name": "athl1"
+    }
+}
+```
+
+#### Patch
+
+This endpoint can be called to update an existing accessory.
+
+##### Query String
+ 
+The client __must__ submit a request to the endpoint `/accessory/{mac_address}`, where `mac_address` __must__ be a MacAddress. It __should__ correspond to the MAC Address of the accessory.  The HTTP method __must__ be `PATCH`.  The `Content-Type` header __should__ be `application/merge-patch+json`, as the request complies with [RFC 7396](https://tools.ietf.org/html/rfc7396).
+
+##### Request
+
+The client __must__ submit a request body containing a JSON object with the following schema:
+
+```
+Accessory
+```
+
+Example request:
+
+```
+PATCH /hardware/2_0/accessory/1d:3a:42:5d:g5:ea HTTP/1.1
+Host: apis.env.fathomai.com
+Content-Type: application/merge-patch+json
+Authorization: ...
+
+{
+	"battery_level": Number,
+	"state": String
+}
+
+```
+
+##### Responses
+
+If the request was successful, the Service __will__ respond with HTTP Status `200 Updated` or `201 Created`.
  
  
 ### Sensor
