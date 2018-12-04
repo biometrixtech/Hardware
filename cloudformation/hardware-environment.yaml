@@ -147,9 +147,7 @@ Resources:
             KeySchema:
               - { AttributeName: "accessory_mac_address", KeyType: "HASH" }
               - { AttributeName: "event_date", KeyType: "RANGE" }
-            ProvisionedThroughput:
-                ReadCapacityUnits: 1
-                WriteCapacityUnits: 1
+            BillingMode: "PAY_PER_REQUEST"
 
     ##########################################################################################################
     ##  SENSOR
@@ -163,9 +161,7 @@ Resources:
               - { AttributeName: "mac_address", AttributeType: "S" }
             KeySchema:
               - { AttributeName: "mac_address", KeyType: "HASH" }
-            ProvisionedThroughput:
-                ReadCapacityUnits: 1
-                WriteCapacityUnits: 1
+            BillingMode: "PAY_PER_REQUEST"
         DeletionPolicy : "Retain"
 
     ##########################################################################################################
@@ -194,9 +190,7 @@ Resources:
             KeySchema:
               - { AttributeName: "device_type", KeyType: "HASH" }
               - { AttributeName: "version", KeyType: "RANGE" }
-            ProvisionedThroughput:
-                ReadCapacityUnits: 1
-                WriteCapacityUnits: 1
+            BillingMode: "PAY_PER_REQUEST"
         DeletionPolicy : "Retain"
 
     ##########################################################################################################
