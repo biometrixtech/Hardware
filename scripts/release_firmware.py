@@ -157,7 +157,7 @@ def main():
             cprint(f"Existing release '{firmware['version']}' is not a valid semantic version", colour=Fore.YELLOW)
     print(released_versions)
     validate_semver_tag(version, released_versions)
-    return
+
     # Upload the firmware file
     s3_key = f'firmware/{args.devicetype}/{args.version}'
     s3_bucket.put_object(Key=s3_key, Body=open(filepath, 'rb'))
