@@ -5,7 +5,8 @@ import json
 import os
 
 from models.entity import Entity
-from fathomapi.utils.exceptions import DuplicateEntityException, InvalidSchemaException, NoSuchEntityException
+from fathomapi.utils.exceptions import DuplicateEntityException, InvalidSchemaException, NoSuchEntityException, \
+    UnauthorizedException
 
 cognito_client = boto3.client('cognito-idp')
 
@@ -99,15 +100,23 @@ class Accessory(Entity):
                 raise
 
     def login(self, password):
-        response = cognito_client.admin_initiate_auth(
-            UserPoolId=os.environ['COGNITO_USER_POOL_ID'],
-            ClientId=os.environ['COGNITO_USER_POOL_CLIENT_ID'],
-            AuthFlow='ADMIN_NO_SRP_AUTH',
-            AuthParameters={
-                'USERNAME': self._mac_address,
-                'PASSWORD': password
-            },
-        )
+        try:
+            response = cognito_client.admin_initiate_auth(
+                UserPoolId=os.environ['COGNITO_USER_POOL_ID'],
+                ClientId=os.environ['COGNITO_USER_POOL_CLIENT_ID'],
+                AuthFlow='ADMIN_NO_SRP_AUTH',
+                AuthParameters={
+                    'USERNAME': self._mac_address,
+                    'PASSWORD': password
+                },
+            )
+        except ClientError as e:
+            if 'UserNotFoundException' in str(e):
+                raise NoSuchEntityException()
+            if 'NotAuthorizedException' in str(e):
+                details = str(e).split(':')[-1].strip(' ')
+                raise UnauthorizedException(details)
+            raise
         if 'ChallengeName' in response and response['ChallengeName'] == "NEW_PASSWORD_REQUIRED":
             # Need to set a new password
             response = cognito_client.admin_respond_to_auth_challenge(
