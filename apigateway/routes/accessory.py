@@ -78,6 +78,8 @@ def handle_accessory_sync(mac_address):
         # TODO work out how we're actually persisting this data
         res['sensors'].append(sensor)
 
+    res['wifi'] = request.json.get('wifi', {})
+
     # Save the data in a time-rolling ddb log table
     _save_sync_record(mac_address, request.json['event_date'], res)
 
@@ -107,6 +109,11 @@ def _save_sync_record(mac_address, event_date, body):
         for k in sensor_fields:
             if k in body['sensors'][i]:
                 item['sensor{}_{}'.format(i + 1, k)] = sensor.cast(k, body['sensors'][i][k])
+
+    if 'pending_tasks' in body['wifi']:
+        item['wifi_pending_tasks'] = body['wifi']['pending_tasks']
+    if 'job_scheduled' in body['wifi']:
+        item['wifi_job_scheduled'] = body['wifi']['job_scheduled']
 
     dynamodb_resource = boto3.resource('dynamodb').Table(os.environ['DYNAMODB_ACCESSORYSYNCLOG_TABLE_NAME'])
     dynamodb_resource.put_item(Item=item)
