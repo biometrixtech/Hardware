@@ -71,7 +71,24 @@ def handle_accessory_sync(mac_address):
         raise InvalidSchemaException("event_date parameter must be in '%Y-%m-%dT%H:%M:%SZ' format")
 
     accessory = Accessory(mac_address)
-    res['accessory'] = accessory.patch(request.json['accessory'])
+    accessory_data = request.json["accessory"]
+
+    # if present, remove the optional properties before patching accessory in cognito
+    wifi_data = {}
+    if "wifi_pending_tasks" in accessory_data:
+        wifi_data["wifi_pending_tasks"] = accessory_data["wifi_pending_tasks"]
+        del accessory_data["wifi_pending_tasks"]
+    if "wifi_job_scheduled" in accessory_data:
+        wifi_data["wifi_job_scheduled"] = accessory_data["wifi_job_scheduled"]
+        del accessory_data["wifi_job_scheduled"]
+
+    res['accessory'] = accessory.patch(accessory_data)
+
+    # re-insert optional properties before updating log table
+    if "wifi_pending_tasks" in wifi_data:
+        res['accessory']["wifi_pending_tasks"] = wifi_data["wifi_pending_tasks"]
+    if "wifi_job_scheduled" in wifi_data:
+        res['accessory']["wifi_job_scheduled"] = wifi_data["wifi_job_scheduled"]
 
     res['sensors'] = []
     for sensor in request.json['sensors']:
