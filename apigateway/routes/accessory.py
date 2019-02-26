@@ -114,6 +114,14 @@ def _save_sync_record(mac_address, event_date, body):
         item['wifi_pending_tasks'] = body['wifi']['pending_tasks']
     if 'job_scheduled' in body['wifi']:
         item['wifi_job_scheduled'] = body['wifi']['job_scheduled']
+    if 'weak_count' in body['wifi']:
+        item['wifi_weak_count'] = body['wifi']['weak_count']
+    if 'total_weak_count' in body['wifi']:
+        item['wifi_total_weak_count'] = body['wifi']['total_weak_count']
+    if 'not_available_count' in body['wifi']:
+        item['wifi_not_available_count'] = body['wifi']['not_available_count']
+    if 'total_not_available_count' in body['wifi']:
+        item['wifi_total_not_available_count'] = body['wifi']['total_not_available_count']
 
     dynamodb_resource = boto3.resource('dynamodb').Table(os.environ['DYNAMODB_ACCESSORYSYNCLOG_TABLE_NAME'])
     dynamodb_resource.put_item(Item=item)
