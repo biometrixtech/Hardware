@@ -112,18 +112,18 @@ def _save_sync_record(mac_address, event_date, body):
             if k in body['sensors'][i]:
                 item['sensor{}_{}'.format(i + 1, k)] = sensor.cast(k, body['sensors'][i][k])
 
-    if 'pending_tasks' in body['wifi']:
-        item['wifi_pending_tasks'] = body['wifi']['pending_tasks']
-    if 'job_scheduled' in body['wifi']:
-        item['wifi_job_scheduled'] = body['wifi']['job_scheduled']
-    if 'weak_count' in body['wifi']:
-        item['wifi_weak_count'] = body['wifi']['weak_count']
-    if 'total_weak_count' in body['wifi']:
-        item['wifi_total_weak_count'] = body['wifi']['total_weak_count']
-    if 'not_available_count' in body['wifi']:
-        item['wifi_not_available_count'] = body['wifi']['not_available_count']
-    if 'total_not_available_count' in body['wifi']:
-        item['wifi_total_not_available_count'] = body['wifi']['total_not_available_count']
+    if 'tasks' in body['wifi']:
+        item['wifi_tasks'] = body['wifi']['tasks']
+    if 'job' in body['wifi']:
+        item['wifi_job'] = body['wifi']['job']
+    if 'weak' in body['wifi']:
+        item['wifi_weak'] = body['wifi']['weak']
+    if 't_weak' in body['wifi']:
+        item['wifi_t_weak'] = body['wifi']['t_weak']
+    if 'na' in body['wifi']:
+        item['wifi_na'] = body['wifi']['na']
+    if 't_na' in body['wifi']:
+        item['wifi_t_na'] = body['wifi']['t_na']
 
     dynamodb_resource = boto3.resource('dynamodb').Table(os.environ['DYNAMODB_ACCESSORYSYNCLOG_TABLE_NAME'])
     dynamodb_resource.put_item(Item=item)
