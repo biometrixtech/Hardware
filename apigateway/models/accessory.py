@@ -7,6 +7,7 @@ import os
 from models.entity import Entity
 from fathomapi.utils.exceptions import DuplicateEntityException, InvalidSchemaException, NoSuchEntityException, \
     UnauthorizedException
+from fathomapi.utils.formatters import format_datetime
 
 cognito_client = boto3.client('cognito-idp')
 
@@ -40,6 +41,10 @@ class Accessory(Entity):
                 ret[key] = self.cast(key, custom_properties[key])
             else:
                 ret[key] = self.schema()['properties'][key].get('default', None)
+        try:
+            ret['last_sync_date'] = format_datetime(res['UserLastModifiedDate'])
+        except:
+            pass
         return ret
 
     def patch(self, body):

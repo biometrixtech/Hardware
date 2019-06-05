@@ -28,7 +28,16 @@ def handle_accessory_register(mac_address):
 def handle_accessory_get(mac_address):
     xray_recorder.current_subsegment().put_annotation('accessory_id', mac_address)
     accessory = Accessory(mac_address).get()
-    return {'accessory': accessory}
+    res = {}
+    res['accessory'] = accessory
+    res['latest_firmware'] = {}
+    for firmware_type in ['accessory', 'ankle', 'hip', 'sensor']:
+        try:
+            res['latest_firmware'][f'{firmware_type}_version'] = Firmware(firmware_type, 'latest').get()['version']
+        except NoSuchEntityException:
+            res['latest_firmware'][f'{firmware_type}_version'] = None
+
+    return res
 
 
 @app.route('/<mac_address>', methods=['PATCH'])
