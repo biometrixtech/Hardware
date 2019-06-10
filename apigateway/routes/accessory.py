@@ -31,7 +31,7 @@ def handle_accessory_get(mac_address):
     res = {}
     res['accessory'] = accessory
     res['latest_firmware'] = {}
-    for firmware_type in ['accessory', 'ankle', 'hip', 'sensor']:
+    for firmware_type in ['accessory']:
         try:
             res['latest_firmware'][f'{firmware_type}_version'] = Firmware(firmware_type, 'latest').get()['version']
         except NoSuchEntityException:
