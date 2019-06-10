@@ -44,7 +44,7 @@ class Accessory(Entity):
         try:
             ret['last_sync_date'] = format_datetime(res['UserLastModifiedDate'])
         except:
-            pass
+            ret['last_sync_date'] = None
         return ret
 
     def patch(self, body):
