@@ -5,9 +5,9 @@ from fathomapi.models.dynamodb_entity import DynamodbEntity
 
 
 class Sensor(DynamodbEntity):
-
-    def _get_dynamodb_resource(self):
-        return boto3.resource('dynamodb').Table(Config.get('DYNAMODB_SENSOR_TABLE_NAME'))
+    _dynamodb_table_name = Config.get('DYNAMODB_SENSOR_TABLE_NAME')
+    # def _get_dynamodb_resource(self):
+    #     return boto3.resource('dynamodb').Table(Config.get('DYNAMODB_SENSOR_TABLE_NAME'))
 
     def __init__(self, mac_address):
         super().__init__({'mac_address': mac_address.upper()})

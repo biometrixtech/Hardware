@@ -29,6 +29,8 @@ def handle_sensor_multipatch():
 
 @xray_recorder.capture('routes.sensor._patch_sensor')
 def _patch_sensor(mac_address, body):
+    if len(mac_address.split(":")) == 4:
+        mac_address += ":00:00"
     sensor = Sensor(mac_address)
     if not sensor.exists() or request.method == 'PUT':
         body['created_date'] = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")

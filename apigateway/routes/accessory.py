@@ -28,7 +28,16 @@ def handle_accessory_register(mac_address):
 def handle_accessory_get(mac_address):
     xray_recorder.current_subsegment().put_annotation('accessory_id', mac_address)
     accessory = Accessory(mac_address).get()
-    return {'accessory': accessory}
+    res = {}
+    res['accessory'] = accessory
+    res['latest_firmware'] = {}
+    for firmware_type in ['accessory']:
+        try:
+            res['latest_firmware'][f'{firmware_type}_version'] = Firmware(firmware_type, 'latest').get()['version']
+        except NoSuchEntityException:
+            res['latest_firmware'][f'{firmware_type}_version'] = None
+
+    return res
 
 
 @app.route('/<mac_address>', methods=['PATCH'])
@@ -78,6 +87,8 @@ def handle_accessory_sync(mac_address):
         # TODO work out how we're actually persisting this data
         res['sensors'].append(sensor)
 
+    res['wifi'] = request.json.get('wifi', {})
+
     # Save the data in a time-rolling ddb log table
     _save_sync_record(mac_address, request.json['event_date'], res)
 
@@ -102,11 +113,26 @@ def _save_sync_record(mac_address, event_date, body):
         if k in body['accessory'] and body['accessory'][k] is not None:
             item['accessory_{}'.format(k)] = body['accessory'][k]
     for i in range(len(body['sensors'])):
+        if len(body['sensors'][i]['mac_address'].split(":")) == 4:
+            body['sensors'][i]['mac_address'] += ":00:00"
         sensor = Sensor(body['sensors'][i]['mac_address'])
         sensor_fields = sensor.get_fields(primary_key=True) + sensor.get_fields(immutable=False)
         for k in sensor_fields:
             if k in body['sensors'][i]:
                 item['sensor{}_{}'.format(i + 1, k)] = sensor.cast(k, body['sensors'][i][k])
+
+    if 'tasks' in body['wifi']:
+        item['wifi_tasks'] = body['wifi']['tasks']
+    if 'job' in body['wifi']:
+        item['wifi_job'] = body['wifi']['job']
+    if 'weak' in body['wifi']:
+        item['wifi_weak'] = body['wifi']['weak']
+    if 't_weak' in body['wifi']:
+        item['wifi_t_weak'] = body['wifi']['t_weak']
+    if 'na' in body['wifi']:
+        item['wifi_na'] = body['wifi']['na']
+    if 't_na' in body['wifi']:
+        item['wifi_t_na'] = body['wifi']['t_na']
 
     dynamodb_resource = boto3.resource('dynamodb').Table(os.environ['DYNAMODB_ACCESSORYSYNCLOG_TABLE_NAME'])
     dynamodb_resource.put_item(Item=item)
