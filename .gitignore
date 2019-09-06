@@ -10,5 +10,6 @@ apigateway/itsdangerous.py
 apigateway/semver.py
 apigateway/six.py
 !apigateway/swagger.yaml
+.idea/*
 
 lambdas/*/*/

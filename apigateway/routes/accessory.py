@@ -3,6 +3,7 @@ from flask import request, Blueprint
 import boto3
 import os
 
+from fathomapi.comms.service import Service
 from fathomapi.utils.decorators import require
 from fathomapi.utils.exceptions import InvalidSchemaException, NoSuchEntityException
 from fathomapi.utils.xray import xray_recorder
@@ -11,6 +12,7 @@ from models.firmware import Firmware
 from models.sensor import Sensor
 
 app = Blueprint('accessory', __name__)
+PREPROCESSING_API_VERSION = '2_0'
 
 
 @app.route('/<mac_address>/register', methods=['POST'])
@@ -92,14 +94,29 @@ def handle_accessory_sync(mac_address):
     # Save the data in a time-rolling ddb log table
     _save_sync_record(mac_address, request.json['event_date'], res)
 
-    res['latest_firmware'] = {}
+    result = {}
+    result['latest_firmware'] = {}
     for firmware_type in ['accessory', 'ankle', 'hip', 'sensor']:
         try:
-            res['latest_firmware'][f'{firmware_type}_version'] = Firmware(firmware_type, 'latest').get()['version']
+            result['latest_firmware'][f'{firmware_type}_version'] = Firmware(firmware_type, 'latest').get()['version']
         except NoSuchEntityException:
-            res['latest_firmware'][f'{firmware_type}_version'] = None
+            result['latest_firmware'][f'{firmware_type}_version'] = None
 
-    return res
+
+    user_id = res['accessory']['owner_id']
+    if user_id is not None:
+        try:
+            preprocessing_service = Service('preprocessing', PREPROCESSING_API_VERSION)
+            endpoint = f"user/{user_id}/last_session"
+            resp = preprocessing_service.call_apigateway_sync(method='GET',
+                                                              endpoint=endpoint)
+            result['last_session'] = resp['last_session']
+        except:
+            result['last_session'] = None
+            return result, 503
+    else:
+        result['last_session'] = None
+    return result
 
 
 @xray_recorder.capture('routes.accessory._save_sync_record')
