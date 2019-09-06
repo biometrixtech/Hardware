@@ -1,5 +1,6 @@
 from fathomapi.api.handler import handler as fathom_handler
 from fathomapi.api.flask_app import app
+import json
 
 from routes.accessory import app as accessory_routes
 from routes.sensor import app as sensor_routes
@@ -12,7 +13,10 @@ app.register_blueprint(misc_routes, url_prefix='/misc')
 
 
 def handler(event, context):
-    return fathom_handler(event, context)
+    print(json.dumps(event))
+    ret = fathom_handler(event, context)
+    print(json.dumps(ret))
+    return ret
 
 
 if __name__ == '__main__':
