@@ -96,7 +96,7 @@ def handle_accessory_sync(mac_address):
 
     result = {}
     result['latest_firmware'] = {}
-    for firmware_type in ['accessory', 'ankle', 'hip', 'sensor']:
+    for firmware_type in ['accessory', 'ankle', 'hip']:  #, 'sensor']:
         try:
             result['latest_firmware'][f'{firmware_type}_version'] = Firmware(firmware_type, 'latest').get()['version']
         except NoSuchEntityException:
