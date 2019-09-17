@@ -81,8 +81,20 @@ def handle_accessory_sync(mac_address):
     except ValueError:
         raise InvalidSchemaException("event_date parameter must be in '%Y-%m-%dT%H:%M:%SZ' format")
 
+    time = {}
     accessory = Accessory(mac_address)
+    if "local_time" in request.json['accessory']:
+        time['local_time'] = request.json['accessory']['local_time']
+        del request.json['accessory']['local_time']
+    if "true_time" in request.json['accessory']:
+        time['true_time'] = request.json['accessory']['true_time']
+        del request.json['accessory']['true_time']
+
     res['accessory'] = accessory.patch(request.json['accessory'])
+    if 'local_time' in time:
+        res['accessory']['local_time'] = time['local_time']
+    if 'true_time' in time:
+        res['accessory']['true_time'] = time['true_time']
 
     res['sensors'] = []
     for sensor in request.json['sensors']:
