@@ -81,20 +81,9 @@ def handle_accessory_sync(mac_address):
     except ValueError:
         raise InvalidSchemaException("event_date parameter must be in '%Y-%m-%dT%H:%M:%SZ' format")
 
-    time = {}
     accessory = Accessory(mac_address)
-    if "local_time" in request.json['accessory']:
-        time['local_time'] = request.json['accessory']['local_time']
-        del request.json['accessory']['local_time']
-    if "true_time" in request.json['accessory']:
-        time['true_time'] = request.json['accessory']['true_time']
-        del request.json['accessory']['true_time']
 
     res['accessory'] = accessory.patch(request.json['accessory'])
-    if 'local_time' in time:
-        res['accessory']['local_time'] = time['local_time']
-    if 'true_time' in time:
-        res['accessory']['true_time'] = time['true_time']
 
     res['sensors'] = []
     for sensor in request.json['sensors']:
@@ -102,6 +91,7 @@ def handle_accessory_sync(mac_address):
         res['sensors'].append(sensor)
 
     res['wifi'] = request.json.get('wifi', {})
+    res['time'] = request.json.get('time', {})
 
     # Save the data in a time-rolling ddb log table
     _save_sync_record(mac_address, request.json['event_date'], res)
@@ -113,7 +103,6 @@ def handle_accessory_sync(mac_address):
             result['latest_firmware'][f'{firmware_type}_version'] = Firmware(firmware_type, 'latest').get()['version']
         except NoSuchEntityException:
             result['latest_firmware'][f'{firmware_type}_version'] = None
-
 
     user_id = res['accessory']['owner_id']
     if user_id is not None:
@@ -162,6 +151,11 @@ def _save_sync_record(mac_address, event_date, body):
         item['wifi_na'] = body['wifi']['na']
     if 't_na' in body['wifi']:
         item['wifi_t_na'] = body['wifi']['t_na']
+
+    if 'local' in body['time']:
+        item['local_time'] = body['time']['local']
+    if 'true' in body['time']:
+        item['true_time'] = body['time']['true']
 
     dynamodb_resource = boto3.resource('dynamodb').Table(os.environ['DYNAMODB_ACCESSORYSYNCLOG_TABLE_NAME'])
     dynamodb_resource.put_item(Item=item)

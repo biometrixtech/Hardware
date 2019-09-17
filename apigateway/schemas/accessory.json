@@ -41,14 +41,6 @@
         "owner_id": {
             "description": "Current owner",
             "type": "string"
-        },
-        "local_time": {
-            "description": "Accessory's time at update",
-            "type": "number"
-        },
-        "true_time": {
-            "description": "Time obtained from server at update",
-            "type": "number"
         }
     },
     "required": [
