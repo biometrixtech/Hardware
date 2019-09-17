@@ -44,11 +44,11 @@
         },
         "local_time": {
             "description": "Accessory's time at update",
-            "type": "string"
+            "type": "number"
         },
         "true_time": {
             "description": "Time obtained from server at update",
-            "type": "string"
+            "type": "number"
         }
     },
     "required": [
