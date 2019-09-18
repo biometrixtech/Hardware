@@ -5,7 +5,7 @@ import os
 
 from fathomapi.comms.service import Service
 from fathomapi.utils.decorators import require
-from fathomapi.utils.exceptions import InvalidSchemaException, NoSuchEntityException
+from fathomapi.utils.exceptions import InvalidSchemaException, NoSuchEntityException, DuplicateEntityException
 from fathomapi.utils.xray import xray_recorder
 from models.accessory import Accessory
 from models.firmware import Firmware
@@ -22,7 +22,11 @@ def handle_accessory_register(mac_address):
     xray_recorder.current_subsegment().put_annotation('accessory_id', mac_address)
     accessory = Accessory(mac_address)
     accessory.create(request.json)
-    AccessoryData(mac_address).create(request.json)
+    try:
+        AccessoryData(mac_address).create(request.json)
+    except DuplicateEntityException as e:  #if there's one already do nothing
+        print(e)
+
     return {"status": "success"}, 201
 
 
@@ -32,8 +36,6 @@ def handle_accessory_register(mac_address):
 def handle_accessory_get(mac_address):
     xray_recorder.current_subsegment().put_annotation('accessory_id', mac_address)
     accessory = Accessory(mac_address).get()
-    accessory_data = AccessoryData(mac_address).get()
-    accessory.update(accessory_data)
     res = {}
     res['accessory'] = accessory
     res['latest_firmware'] = {}
@@ -85,10 +87,14 @@ def handle_accessory_sync(mac_address):
     except ValueError:
         raise InvalidSchemaException("event_date parameter must be in '%Y-%m-%dT%H:%M:%SZ' format")
 
+    request.json['accessory']['last_sync_date'] = request.json['event_date']
     accessory = Accessory(mac_address)
-
     res['accessory'] = accessory.patch(request.json['accessory'])
 
+    # accessory_data = AccessoryData(mac_address)
+    # accessory_data.patch({"last_sync_date": request.json["event_date"],
+    #                       "clock_drift_rate": "test_new"})
+    
     res['sensors'] = []
     for sensor in request.json['sensors']:
         # TODO work out how we're actually persisting this data

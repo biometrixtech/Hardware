@@ -7,7 +7,7 @@ import os
 from models.entity import Entity
 from models.accessory_data import AccessoryData
 from fathomapi.utils.exceptions import DuplicateEntityException, InvalidSchemaException, NoSuchEntityException, \
-    UnauthorizedException
+    UnauthorizedException, NoUpdatesException
 from fathomapi.utils.formatters import format_datetime
 
 cognito_client = boto3.client('cognito-idp')
@@ -47,6 +47,18 @@ class Accessory(Entity):
         except:
             ret['last_sync_date'] = None
 
+        try:
+            accessory_data = AccessoryData(self._mac_address).get()
+            if accessory_data.get('last_sync_date') is not None:
+                ret['last_sync_date'] = accessory_data.get('last_sync_date')
+            if accessory_data.get('clock_drift_rate') is not None:
+                ret['clock_drift_rate'] = accessory_data.get('clock_drift_rate')
+        except NoSuchEntityException as e:
+            pass
+        except Exception as e:
+            print(e)
+            raise
+
         return ret
 
     def patch(self, body):
@@ -73,9 +85,21 @@ class Accessory(Entity):
         else:
             # TODO
             raise NotImplementedError
-        accessory_data = AccessoryData(self._mac_address)
-        accessory_data.patch(body)
-        return self.get()
+        res = self.get()
+        try:
+            accessory_data = AccessoryData(self._mac_address)
+            body['owner_id'] = res['owner_id']
+            accessory_data.patch(body)
+        except DuplicateEntityException:  # TODO: this seems to be incorrect exception raised in DynamodbEntity.patch
+            try:
+                AccessoryData(self._mac_address).create(body)
+            except DuplicateEntityException as e:
+                print(e)
+        except NoUpdatesException as e:
+            print(e)
+            pass
+        return res
+
 
     def create(self, body):
         body['mac_address'] = self._mac_address

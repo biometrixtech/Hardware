@@ -1,6 +1,6 @@
 {
     "$schema": "http://json-schema.org/schema#",
-    "id": "http://schema.fathomai.com/schemas/accessory.json",
+    "id": "http://schema.fathomai.com/schemas/accessory_data.json",
     "description": "AccessoryData",
     "type": "object",
     "properties": {
@@ -11,7 +11,7 @@
         },
         "clock_drift_rate": {
             "description": "Rate of clock drift for the accessory",
-            "type": "string"
+            "type": "number"
         },
         "last_sync_date": {
             "description": "date when last sync happened",
