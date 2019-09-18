@@ -10,6 +10,7 @@ from fathomapi.utils.xray import xray_recorder
 from models.accessory import Accessory
 from models.firmware import Firmware
 from models.sensor import Sensor
+from models.accessory_data import AccessoryData
 
 app = Blueprint('accessory', __name__)
 PREPROCESSING_API_VERSION = '2_0'
@@ -21,6 +22,7 @@ def handle_accessory_register(mac_address):
     xray_recorder.current_subsegment().put_annotation('accessory_id', mac_address)
     accessory = Accessory(mac_address)
     accessory.create(request.json)
+    AccessoryData(mac_address).create(request.json)
     return {"status": "success"}, 201
 
 
@@ -30,6 +32,8 @@ def handle_accessory_register(mac_address):
 def handle_accessory_get(mac_address):
     xray_recorder.current_subsegment().put_annotation('accessory_id', mac_address)
     accessory = Accessory(mac_address).get()
+    accessory_data = AccessoryData(mac_address).get()
+    print(accessory_data)
     res = {}
     res['accessory'] = accessory
     res['latest_firmware'] = {}

@@ -5,6 +5,7 @@ import json
 import os
 
 from models.entity import Entity
+from models.accessory_data import AccessoryData
 from fathomapi.utils.exceptions import DuplicateEntityException, InvalidSchemaException, NoSuchEntityException, \
     UnauthorizedException
 from fathomapi.utils.formatters import format_datetime
@@ -45,6 +46,9 @@ class Accessory(Entity):
             ret['last_sync_date'] = format_datetime(res['UserLastModifiedDate'])
         except:
             ret['last_sync_date'] = None
+
+        accessory_data = AccessoryData(self._mac_address)
+        ret.update(accessory_data.get())
         return ret
 
     def patch(self, body):
@@ -71,7 +75,8 @@ class Accessory(Entity):
         else:
             # TODO
             raise NotImplementedError
-
+        accessory_data = AccessoryData(self._mac_address)
+        accessory_data.patch(body)
         return self.get()
 
     def create(self, body):
