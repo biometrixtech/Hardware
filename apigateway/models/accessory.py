@@ -47,8 +47,8 @@ class Accessory(Entity):
         except:
             ret['last_sync_date'] = None
 
-        accessory_data = AccessoryData(self._mac_address)
-        ret.update(accessory_data.get())
+        # accessory_data = AccessoryData(self._mac_address)
+        # ret.update(accessory_data.get())
         return ret
 
     def patch(self, body):
