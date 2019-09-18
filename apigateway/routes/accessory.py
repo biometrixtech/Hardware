@@ -33,7 +33,7 @@ def handle_accessory_get(mac_address):
     xray_recorder.current_subsegment().put_annotation('accessory_id', mac_address)
     accessory = Accessory(mac_address).get()
     accessory_data = AccessoryData(mac_address).get()
-    print(accessory_data)
+    accessory.update(accessory_data)
     res = {}
     res['accessory'] = accessory
     res['latest_firmware'] = {}
