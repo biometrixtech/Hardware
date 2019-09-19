@@ -90,10 +90,6 @@ def handle_accessory_sync(mac_address):
     request.json['accessory']['last_sync_date'] = request.json['event_date']
     accessory = Accessory(mac_address)
     res['accessory'] = accessory.patch(request.json['accessory'])
-
-    # accessory_data = AccessoryData(mac_address)
-    # accessory_data.patch({"last_sync_date": request.json["event_date"],
-    #                       "clock_drift_rate": "test_new"})
     
     res['sensors'] = []
     for sensor in request.json['sensors']:

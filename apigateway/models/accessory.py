@@ -42,10 +42,8 @@ class Accessory(Entity):
                 ret[key] = self.cast(key, custom_properties[key])
             else:
                 ret[key] = self.schema()['properties'][key].get('default', None)
-        try:
-            ret['last_sync_date'] = format_datetime(res['UserLastModifiedDate'])
-        except:
-            ret['last_sync_date'] = None
+        ret['last_sync_date'] = None
+        ret['clock_drift_rate'] = None
 
         try:
             accessory_data = AccessoryData(self._mac_address).get()
@@ -86,10 +84,16 @@ class Accessory(Entity):
             # TODO
             raise NotImplementedError
         res = self.get()
+        res['last_sync_date'] = None
+        res['clock_drift_rate'] = None
         try:
             accessory_data = AccessoryData(self._mac_address)
             body['owner_id'] = res['owner_id']
-            accessory_data.patch(body)
+            acc_data = accessory_data.patch(body)
+            if 'last_sync_date' in acc_data:
+                res['last_sync_date'] = acc_data['last_sync_date']
+            if 'clock_drift_rate' in acc_data:
+                res['clock_drift_rate'] = acc_data['clock_drift_rate']
         except DuplicateEntityException:  # TODO: this seems to be incorrect exception raised in DynamodbEntity.patch
             try:
                 AccessoryData(self._mac_address).create(body)
