@@ -52,6 +52,7 @@ class Accessory(Entity):
             if accessory_data.get('clock_drift_rate') is not None:
                 ret['clock_drift_rate'] = accessory_data.get('clock_drift_rate')
         except NoSuchEntityException as e:
+            print(e)
             pass
         except Exception as e:
             print(e)
@@ -70,38 +71,40 @@ class Accessory(Entity):
                     attributes_to_update.append({'Name': 'custom:{}'.format(key), 'Value': str(body[key])})
 
         if self.exists():
-            cognito_client.admin_update_user_attributes(
-                UserPoolId=os.environ['COGNITO_USER_POOL_ID'],
-                Username=self._mac_address,
-                UserAttributes=attributes_to_update
-            )
-            cognito_client.admin_delete_user_attributes(
-                UserPoolId=os.environ['COGNITO_USER_POOL_ID'],
-                Username=self._mac_address,
-                UserAttributeNames=attributes_to_delete
-            )
+            if len(attributes_to_update) > 0:
+                cognito_client.admin_update_user_attributes(
+                    UserPoolId=os.environ['COGNITO_USER_POOL_ID'],
+                    Username=self._mac_address,
+                    UserAttributes=attributes_to_update
+                )
+            if len(attributes_to_delete) > 0:
+                cognito_client.admin_delete_user_attributes(
+                    UserPoolId=os.environ['COGNITO_USER_POOL_ID'],
+                    Username=self._mac_address,
+                    UserAttributeNames=attributes_to_delete
+                )
         else:
             # TODO
             raise NotImplementedError
         res = self.get()
         res['last_sync_date'] = None
         res['clock_drift_rate'] = None
+        body['owner_id'] = res['owner_id']
         try:
             accessory_data = AccessoryData(self._mac_address)
-            body['owner_id'] = res['owner_id']
             acc_data = accessory_data.patch(body)
-            if 'last_sync_date' in acc_data:
-                res['last_sync_date'] = acc_data['last_sync_date']
-            if 'clock_drift_rate' in acc_data:
-                res['clock_drift_rate'] = acc_data['clock_drift_rate']
         except DuplicateEntityException:  # TODO: this seems to be incorrect exception raised in DynamodbEntity.patch
-            try:
+            try:  # First patch call after creation of accessory data table -> add informaiton
                 AccessoryData(self._mac_address).create(body)
+                acc_data = AccessoryData(self._mac_address).get()
             except DuplicateEntityException as e:
                 print(e)
-        except NoUpdatesException as e:
+        except NoUpdatesException as e:  # for patch
             print(e)
-            pass
+        if 'last_sync_date' in acc_data:
+            res['last_sync_date'] = acc_data['last_sync_date']
+        if 'clock_drift_rate' in acc_data:
+            res['clock_drift_rate'] = acc_data['clock_drift_rate']
         return res
 
 
