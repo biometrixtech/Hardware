@@ -1,0 +1,29 @@
+{
+    "$schema": "http://json-schema.org/schema#",
+    "id": "http://schema.fathomai.com/schemas/accessory_data.json",
+    "description": "AccessoryData",
+    "type": "object",
+    "properties": {
+        "id": {
+            "description": "Mac Address of the accessory",
+            "type": "string",
+            "readonly": true
+        },
+        "clock_drift_rate": {
+            "description": "Rate of clock drift for the accessory",
+            "type": "number"
+        },
+        "last_sync_date": {
+            "description": "date when last sync happened",
+            "type": "string"
+        },
+        "owner_id": {
+            "description": "Current owner",
+            "type": "string"
+        }
+    },
+    "required": [
+        "id"
+    ],
+    "additionalProperties": false
+}
