@@ -5,8 +5,9 @@ import json
 import os
 
 from models.entity import Entity
+from models.accessory_data import AccessoryData
 from fathomapi.utils.exceptions import DuplicateEntityException, InvalidSchemaException, NoSuchEntityException, \
-    UnauthorizedException
+    UnauthorizedException, NoUpdatesException
 from fathomapi.utils.formatters import format_datetime
 
 cognito_client = boto3.client('cognito-idp')
@@ -41,10 +42,22 @@ class Accessory(Entity):
                 ret[key] = self.cast(key, custom_properties[key])
             else:
                 ret[key] = self.schema()['properties'][key].get('default', None)
+        ret['last_sync_date'] = None
+        ret['clock_drift_rate'] = None
+
         try:
-            ret['last_sync_date'] = format_datetime(res['UserLastModifiedDate'])
-        except:
-            ret['last_sync_date'] = None
+            accessory_data = AccessoryData(self._mac_address).get()
+            if accessory_data.get('last_sync_date') is not None:
+                ret['last_sync_date'] = accessory_data.get('last_sync_date')
+            if accessory_data.get('clock_drift_rate') is not None:
+                ret['clock_drift_rate'] = accessory_data.get('clock_drift_rate')
+        except NoSuchEntityException as e:
+            print(e)
+            pass
+        except Exception as e:
+            print(e)
+            raise
+
         return ret
 
     def patch(self, body):
@@ -58,21 +71,42 @@ class Accessory(Entity):
                     attributes_to_update.append({'Name': 'custom:{}'.format(key), 'Value': str(body[key])})
 
         if self.exists():
-            cognito_client.admin_update_user_attributes(
-                UserPoolId=os.environ['COGNITO_USER_POOL_ID'],
-                Username=self._mac_address,
-                UserAttributes=attributes_to_update
-            )
-            cognito_client.admin_delete_user_attributes(
-                UserPoolId=os.environ['COGNITO_USER_POOL_ID'],
-                Username=self._mac_address,
-                UserAttributeNames=attributes_to_delete
-            )
+            if len(attributes_to_update) > 0:
+                cognito_client.admin_update_user_attributes(
+                    UserPoolId=os.environ['COGNITO_USER_POOL_ID'],
+                    Username=self._mac_address,
+                    UserAttributes=attributes_to_update
+                )
+            if len(attributes_to_delete) > 0:
+                cognito_client.admin_delete_user_attributes(
+                    UserPoolId=os.environ['COGNITO_USER_POOL_ID'],
+                    Username=self._mac_address,
+                    UserAttributeNames=attributes_to_delete
+                )
         else:
             # TODO
             raise NotImplementedError
+        res = self.get()
+        res['last_sync_date'] = None
+        res['clock_drift_rate'] = None
+        body['owner_id'] = res['owner_id']
+        try:
+            accessory_data = AccessoryData(self._mac_address)
+            acc_data = accessory_data.patch(body)
+        except DuplicateEntityException:  # TODO: this seems to be incorrect exception raised in DynamodbEntity.patch
+            try:  # First patch call after creation of accessory data table -> add informaiton
+                AccessoryData(self._mac_address).create(body)
+                acc_data = AccessoryData(self._mac_address).get()
+            except DuplicateEntityException as e:
+                print(e)
+        except NoUpdatesException as e:  # for patch
+            print(e)
+        if 'last_sync_date' in acc_data:
+            res['last_sync_date'] = acc_data['last_sync_date']
+        if 'clock_drift_rate' in acc_data:
+            res['clock_drift_rate'] = acc_data['clock_drift_rate']
+        return res
 
-        return self.get()
 
     def create(self, body):
         body['mac_address'] = self._mac_address

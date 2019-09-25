@@ -149,6 +149,16 @@ Resources:
               - { AttributeName: "event_date", KeyType: "RANGE" }
             BillingMode: "PAY_PER_REQUEST"
 
+    AccessoryTable:
+        Type: "AWS::DynamoDB::Table"
+        Properties:
+            TableName: { "Fn::Sub": "hardware-${Environment}-accessory" }
+            AttributeDefinitions:
+              - { AttributeName: "id", AttributeType: "S" }
+            KeySchema:
+              - { AttributeName: "id", KeyType: "HASH" }
+            BillingMode: "PAY_PER_REQUEST"
+
     ##########################################################################################################
     ##  SENSOR
     ##########################################################################################################
@@ -291,6 +301,7 @@ Resources:
                           - { "Fn::GetAtt": [ "FirmwareTable", "Arn" ] }
                           - { "Fn::GetAtt": [ "SensorTable", "Arn" ] }
                           - { "Fn::GetAtt": [ "AccessorySyncLogTable", "Arn" ] }
+                          - { "Fn::GetAtt": [ "AccessoryTable", "Arn" ] }
 
                       - Action:
                           - "s3:GetObject"
@@ -319,6 +330,7 @@ Resources:
                     DYNAMODB_FIRMWARE_TABLE_NAME: { Ref: "FirmwareTable" }
                     DYNAMODB_SENSOR_TABLE_NAME: { Ref: "SensorTable" }
                     DYNAMODB_ACCESSORYSYNCLOG_TABLE_NAME: { Ref: "AccessorySyncLogTable" }
+                    DYNAMODB_ACCESSORY_TABLE_NAME: { Ref: "AccessoryTable" }
                     S3_FIRMWARE_BUCKET_NAME: { Ref: "FirmwareS3Bucket" }
             Handler: "apigateway.handler"
             Runtime: "python3.6"
