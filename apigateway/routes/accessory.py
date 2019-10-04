@@ -194,6 +194,7 @@ def correct_clock_drift(last_session, accessory_id):
                                                                       last_true_time)
             last_session['event_date'] = event_date
             session_id = last_session['id']
+            # TODO: preprocessing does not have async queue
             patch_session(session_id, offset_applied)
     return last_session
 
@@ -248,7 +249,7 @@ def patch_session(session_id, offset_applied):
     try:
         endpoint = f"session/{session_id}"
         preprocessing_service = Service('preprocessing', PREPROCESSING_API_VERSION)
-        preprocessing_service.call_apigateway_async(method='PATCH',
+        preprocessing_service.call_apigateway_sync(method='PATCH',
                                                     endpoint=endpoint,
                                                     body={'start_time_adjustment': offset_applied}
                                                     )
