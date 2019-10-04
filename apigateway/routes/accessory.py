@@ -190,7 +190,7 @@ def apply_clock_drift_correction(accessory_id, event_date, true_time_sync_before
     event_date_string = datetime.utcfromtimestamp(event_date).strftime("%Y-%m-%dT%H:%M:%SZ")
     result = dynamodb_resource.query(KeyConditionExpression=Key('accessory_mac_address').eq(accessory_id.upper()) & Key('event_date').gt(event_date_string))['Items']
     if len(result) > 0:
-        event_date *= 1000
+        event_date *= 1000  # convert to ms resolution
         result = sorted(result, key=lambda k: k['event_date'])
         next_sync = result[0]
         true_time_sync_after_session = float(next_sync['true_time'])
@@ -199,10 +199,10 @@ def apply_clock_drift_correction(accessory_id, event_date, true_time_sync_before
         time_elapsed_since_last_sync = event_date - true_time_sync_before_session
         time_between_syncs = true_time_sync_after_session - true_time_sync_before_session
         four_hours =  4 * 60 * 60 * 1000
-        if time_between_syncs > four_hours and time_elapsed_since_last_sync > four_hours:
+        if time_between_syncs > four_hours and time_elapsed_since_last_sync > four_hours:  # make sure enouth time has passed
             offset_to_apply = time_elapsed_since_last_sync / time_between_syncs * error
             event_date += offset_to_apply
-            event_date = int(event_date / 1000)
         else:
             print("recently synced, do not need to update")
+        event_date = int(event_date / 1000)  # revert back to s resolution
     return event_date
