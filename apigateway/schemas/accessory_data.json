@@ -20,6 +20,14 @@
         "owner_id": {
             "description": "Current owner",
             "type": "string"
+        },
+        "true_time": {
+            "description": "True time at sync",
+            "type": "number"
+        },
+        "local_time": {
+            "description": "Local time at sync",
+            "type": "number"
         }
     },
     "required": [

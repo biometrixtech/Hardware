@@ -1,6 +1,7 @@
 from datetime import datetime
 from flask import request, Blueprint
 import boto3
+from boto3.dynamodb.conditions import Key
 import os
 
 from fathomapi.comms.service import Service
@@ -89,7 +90,17 @@ def handle_accessory_sync(mac_address):
 
     request.json['accessory']['last_sync_date'] = request.json['event_date']
     accessory = Accessory(mac_address)
+    res['time'] = request.json.get('time', {})
+    if 'local' in res['time']:
+        request.json['accessory']['local_time'] = res['time']['local']
+    if 'true' in res['time']:
+        request.json['accessory']['true_time'] = res['time']['true']
     res['accessory'] = accessory.patch(request.json['accessory'])
+    if 'true_time' in res['accessory']:
+        del res['accessory']['true_time']
+    if 'local_time' in res['accessory']:
+        del res['accessory']['local_time']
+
     
     res['sensors'] = []
     for sensor in request.json['sensors']:
@@ -97,7 +108,6 @@ def handle_accessory_sync(mac_address):
         res['sensors'].append(sensor)
 
     res['wifi'] = request.json.get('wifi', {})
-    res['time'] = request.json.get('time', {})
 
     # Save the data in a time-rolling ddb log table
     _save_sync_record(mac_address, request.json['event_date'], res)
@@ -118,6 +128,13 @@ def handle_accessory_sync(mac_address):
             resp = preprocessing_service.call_apigateway_sync(method='GET',
                                                               endpoint=endpoint)
             result['last_session'] = resp['last_session']
+            if result['last_session'] is not None:
+                if 'last_true_time' in result['last_session']:
+                    if result['last_session'].get('last_true_time') is not None:
+                        result['last_session']['event_date'] = apply_clock_drift_correction(accessory.id,
+                                                                                            result['last_session']['event_date'],
+                                                                                            result['last_session']['last_true_time'])
+                    del result['last_session']['last_true_time']
         except:
             result['last_session'] = None
             return result, 503
@@ -165,3 +182,21 @@ def _save_sync_record(mac_address, event_date, body):
 
     dynamodb_resource = boto3.resource('dynamodb').Table(os.environ['DYNAMODB_ACCESSORYSYNCLOG_TABLE_NAME'])
     dynamodb_resource.put_item(Item=item)
+
+
+def apply_clock_drift_correction(accessory_id, event_date, true_time_sync_before_session):
+    dynamodb_resource = boto3.resource('dynamodb').Table(os.environ['DYNAMODB_ACCESSORYSYNCLOG_TABLE_NAME'])
+    result = dynamodb_resource.query(KeyConditionExpression=Key(accessory_id).eq('accessory_id') & Key('event_date').gt(event_date))['Items']
+    if len(result) > 0:
+        event_date *= 1000
+        result = sorted(result, key=lambda k: k['event_date'])
+        next_sync = result[0]
+        true_time_sync_after_session = next_sync['true_time']
+        local_time_sync_after_session = next_sync['local_time']
+        error = local_time_sync_after_session - true_time_sync_after_session
+        time_elapsed_since_last_sync = event_date - true_time_sync_before_session
+        time_between_syncs = true_time_sync_after_session - true_time_sync_before_session
+        offset_to_apply = time_elapsed_since_last_sync / time_between_syncs * error
+        event_date += offset_to_apply
+        event_date = int(event_date / 1000)
+    return event_date
