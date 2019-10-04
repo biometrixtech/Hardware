@@ -131,11 +131,12 @@ def handle_accessory_sync(mac_address):
             if result['last_session'] is not None:
                 if 'last_true_time' in result['last_session']:
                     if result['last_session'].get('last_true_time') is not None:
-                        result['last_session']['event_date'] = apply_clock_drift_correction(accessory.id,
+                        result['last_session']['event_date'] = apply_clock_drift_correction(mac_address,
                                                                                             result['last_session']['event_date'],
                                                                                             result['last_session']['last_true_time'])
                     del result['last_session']['last_true_time']
-        except:
+        except Exception as e:
+            print(e)
             result['last_session'] = None
             return result, 503
     else:
@@ -186,7 +187,7 @@ def _save_sync_record(mac_address, event_date, body):
 
 def apply_clock_drift_correction(accessory_id, event_date, true_time_sync_before_session):
     dynamodb_resource = boto3.resource('dynamodb').Table(os.environ['DYNAMODB_ACCESSORYSYNCLOG_TABLE_NAME'])
-    result = dynamodb_resource.query(KeyConditionExpression=Key(accessory_id).eq('accessory_id') & Key('event_date').gt(event_date))['Items']
+    result = dynamodb_resource.query(KeyConditionExpression=Key('accessory_mac_address').eq(accessory_id.upper()) & Key('event_date').gt(event_date))['Items']
     if len(result) > 0:
         event_date *= 1000
         result = sorted(result, key=lambda k: k['event_date'])
