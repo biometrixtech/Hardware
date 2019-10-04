@@ -123,20 +123,11 @@ def handle_accessory_sync(mac_address):
     user_id = res['accessory']['owner_id']
     if user_id is not None:
         try:
-            preprocessing_service = Service('preprocessing', PREPROCESSING_API_VERSION)
-            endpoint = f"user/{user_id}/last_session"
-            resp = preprocessing_service.call_apigateway_sync(method='GET',
-                                                              endpoint=endpoint)
-            result['last_session'] = resp['last_session']
+            result['last_session'] = get_last_session(user_id)
+
             if result['last_session'] is not None:
-                if 'last_true_time' in result['last_session']:
-                    if result['last_session'].get('last_true_time') is not None:
-                        result['last_session']['event_date'] = apply_clock_drift_correction(mac_address,
-                                                                                            result['last_session']['event_date'],
-                                                                                            result['last_session']['last_true_time'])
-                    del result['last_session']['last_true_time']
-        except Exception as e:
-            print(e)
+                result['last_session'] = correct_clock_drift(result['last_session'], mac_address)
+        except Exception:
             result['last_session'] = None
             return result, 503
     else:
@@ -185,28 +176,81 @@ def _save_sync_record(mac_address, event_date, body):
     dynamodb_resource.put_item(Item=item)
 
 
+def get_last_session(user_id):
+    preprocessing_service = Service('preprocessing', PREPROCESSING_API_VERSION)
+    endpoint = f"user/{user_id}/last_session"
+    resp = preprocessing_service.call_apigateway_sync(method='GET',
+                                                      endpoint=endpoint)
+    return resp['last_session']
+
+
+def correct_clock_drift(last_session, accessory_id):
+    if 'last_true_time' in last_session:
+        last_true_time = last_session.get('last_true_time')
+        del last_session['last_true_time']
+        if last_true_time is not None:
+            event_date, offset_applied = apply_clock_drift_correction(accessory_id,
+                                                                      last_session['event_date'],
+                                                                      last_true_time)
+            last_session['event_date'] = event_date
+            session_id = last_session['id']
+            patch_session(session_id, offset_applied)
+    return last_session
+
+
 def apply_clock_drift_correction(accessory_id, event_date, true_time_sync_before_session):
-    dynamodb_resource = boto3.resource('dynamodb').Table(os.environ['DYNAMODB_ACCESSORYSYNCLOG_TABLE_NAME'])
-    event_date_string = datetime.utcfromtimestamp(event_date).strftime("%Y-%m-%dT%H:%M:%SZ")
-    result = dynamodb_resource.query(KeyConditionExpression=Key('accessory_mac_address').eq(accessory_id.upper()) & Key('event_date').gt(event_date_string))['Items']
-    if len(result) > 0:
-        event_date *= 1000  # convert to ms resolution
-        result = sorted(result, key=lambda k: k['event_date'])
-        next_sync = result[0]
-        true_time_sync_after_session = float(next_sync['true_time'])
-        local_time_sync_after_session = float(next_sync['local_time'])
-        print(f"true after: {true_time_sync_after_session}, local after: {local_time_sync_after_session}, true before: {true_time_sync_before_session}, event_date{event_date}")
-        error = local_time_sync_after_session - true_time_sync_after_session
-        time_elapsed_since_last_sync = event_date - true_time_sync_before_session
-        time_between_syncs = true_time_sync_after_session - true_time_sync_before_session
-        print(time_elapsed_since_last_sync / (60 * 60 * 1000), time_between_syncs / (60 * 60 * 1000), error)
-        four_hours =  4 * 60 * 60 * 1000
-        if time_between_syncs > four_hours and time_elapsed_since_last_sync > four_hours:  # make sure enouth time has passed
-            offset_to_apply = time_elapsed_since_last_sync / time_between_syncs * error
-            print(f"offset: {offset_to_apply}")
-            event_date += offset_to_apply
-        else:
-            print("recently synced, do not need to update")
-        event_date = int(event_date / 1000)  # revert back to s resolution
-        print(f"event_date: {event_date}")
-    return event_date
+    next_sync = get_next_sync(accessory_id, event_date)
+    offset_applied = 0
+    try:
+        if next_sync is not None:
+            event_date *= 1000  # convert to ms resolution
+            # get values for first sync after session
+            true_time_sync_after_session = next_sync['true_time']
+            local_time_sync_after_session = next_sync['local_time']
+            # get total error
+            error = local_time_sync_after_session - true_time_sync_after_session
+            # get time difference between events
+            time_elapsed_since_last_sync = event_date - true_time_sync_before_session
+            time_between_syncs = true_time_sync_after_session - true_time_sync_before_session
+            min_time = 8 * 3600 * 1000
+            if time_between_syncs > min_time and time_elapsed_since_last_sync > min_time:  # make sure enouth time has passed
+                offset_applied = time_elapsed_since_last_sync / time_between_syncs * error
+                event_date += offset_applied
+            else:
+                print("recently synced, do not need to update")
+            event_date = int(event_date / 1000)  # revert back to s resolution
+    except Exception as e:
+        print(e)
+    return event_date, offset_applied
+
+
+def get_next_sync(accessory_id, event_date):
+    try:
+        dynamodb_resource = boto3.resource('dynamodb').Table(os.environ['DYNAMODB_ACCESSORYSYNCLOG_TABLE_NAME'])
+        event_date_string = datetime.utcfromtimestamp(event_date).strftime("%Y-%m-%dT%H:%M:%SZ")
+        result = dynamodb_resource.query(KeyConditionExpression=Key('accessory_mac_address').eq(accessory_id.upper()) & Key('event_date').gt(event_date_string))['Items']
+        if len(result) > 0:
+            result = sorted(result, key=lambda k: k['event_date'])
+            next_sync = result[0]
+            try:
+                return {
+                    'true_time': float(next_sync.get('true_time')),
+                    'local_time': float(next_sync.get('local_time'))
+                }
+            except TypeError as e:
+                print(e)
+    except Exception as e:  # catch all exceptions
+        print(e)
+    return None
+
+
+def patch_session(session_id, offset_applied):
+    try:
+        endpoint = f"session/{session_id}"
+        preprocessing_service = Service('preprocessing', PREPROCESSING_API_VERSION)
+        preprocessing_service.call_apigateway_async(method='PATCH',
+                                                    endpoint=endpoint,
+                                                    body={'start_time_adjustment': offset_applied}
+                                                    )
+    except Exception as e:
+        print(e)
