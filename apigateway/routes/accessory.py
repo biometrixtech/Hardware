@@ -215,7 +215,7 @@ def apply_clock_drift_correction(accessory_id, event_date, true_time_sync_before
             time_between_syncs = true_time_sync_after_session - true_time_sync_before_session
             min_time = 8 * 3600 * 1000
             if time_between_syncs > min_time and time_elapsed_since_last_sync > min_time:  # make sure enouth time has passed
-                offset_applied = time_elapsed_since_last_sync / time_between_syncs * error
+                offset_applied = round(time_elapsed_since_last_sync / time_between_syncs * error, 0)
                 event_date += offset_applied
             else:
                 print("recently synced, do not need to update")
