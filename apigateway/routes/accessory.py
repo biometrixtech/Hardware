@@ -195,14 +195,18 @@ def apply_clock_drift_correction(accessory_id, event_date, true_time_sync_before
         next_sync = result[0]
         true_time_sync_after_session = float(next_sync['true_time'])
         local_time_sync_after_session = float(next_sync['local_time'])
+        print(f"true after: {true_time_sync_after_session}, local after: {local_time_sync_after_session}, true before: {true_time_sync_before_session}, event_date{event_date}")
         error = local_time_sync_after_session - true_time_sync_after_session
         time_elapsed_since_last_sync = event_date - true_time_sync_before_session
         time_between_syncs = true_time_sync_after_session - true_time_sync_before_session
+        print(time_elapsed_since_last_sync / (60 * 60 * 1000), time_between_syncs / (60 * 60 * 1000), error)
         four_hours =  4 * 60 * 60 * 1000
         if time_between_syncs > four_hours and time_elapsed_since_last_sync > four_hours:  # make sure enouth time has passed
             offset_to_apply = time_elapsed_since_last_sync / time_between_syncs * error
+            print(f"offset: {offset_to_apply}")
             event_date += offset_to_apply
         else:
             print("recently synced, do not need to update")
         event_date = int(event_date / 1000)  # revert back to s resolution
+        print(f"event_date: {event_date}")
     return event_date
