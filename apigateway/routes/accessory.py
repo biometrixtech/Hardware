@@ -1,6 +1,7 @@
 from datetime import datetime
 from flask import request, Blueprint
 import boto3
+from boto3.dynamodb.conditions import Key
 import os
 
 from fathomapi.comms.service import Service
@@ -89,7 +90,17 @@ def handle_accessory_sync(mac_address):
 
     request.json['accessory']['last_sync_date'] = request.json['event_date']
     accessory = Accessory(mac_address)
+    res['time'] = request.json.get('time', {})
+    if 'local' in res['time']:
+        request.json['accessory']['local_time'] = res['time']['local']
+    if 'true' in res['time']:
+        request.json['accessory']['true_time'] = res['time']['true']
     res['accessory'] = accessory.patch(request.json['accessory'])
+    if 'true_time' in res['accessory']:
+        del res['accessory']['true_time']
+    if 'local_time' in res['accessory']:
+        del res['accessory']['local_time']
+
     
     res['sensors'] = []
     for sensor in request.json['sensors']:
@@ -97,7 +108,6 @@ def handle_accessory_sync(mac_address):
         res['sensors'].append(sensor)
 
     res['wifi'] = request.json.get('wifi', {})
-    res['time'] = request.json.get('time', {})
 
     # Save the data in a time-rolling ddb log table
     _save_sync_record(mac_address, request.json['event_date'], res)
@@ -113,12 +123,11 @@ def handle_accessory_sync(mac_address):
     user_id = res['accessory']['owner_id']
     if user_id is not None:
         try:
-            preprocessing_service = Service('preprocessing', PREPROCESSING_API_VERSION)
-            endpoint = f"user/{user_id}/last_session"
-            resp = preprocessing_service.call_apigateway_sync(method='GET',
-                                                              endpoint=endpoint)
-            result['last_session'] = resp['last_session']
-        except:
+            result['last_session'] = get_last_session(user_id)
+
+            if result['last_session'] is not None:
+                result['last_session'] = correct_clock_drift(result['last_session'], mac_address)
+        except Exception:
             result['last_session'] = None
             return result, 503
     else:
@@ -165,3 +174,84 @@ def _save_sync_record(mac_address, event_date, body):
 
     dynamodb_resource = boto3.resource('dynamodb').Table(os.environ['DYNAMODB_ACCESSORYSYNCLOG_TABLE_NAME'])
     dynamodb_resource.put_item(Item=item)
+
+
+def get_last_session(user_id):
+    preprocessing_service = Service('preprocessing', PREPROCESSING_API_VERSION)
+    endpoint = f"user/{user_id}/last_session"
+    resp = preprocessing_service.call_apigateway_sync(method='GET',
+                                                      endpoint=endpoint)
+    return resp['last_session']
+
+
+def correct_clock_drift(last_session, accessory_id):
+    if 'last_true_time' in last_session:
+        last_true_time = last_session.get('last_true_time')
+        del last_session['last_true_time']
+        if last_true_time is not None:
+            event_date, offset_applied = apply_clock_drift_correction(accessory_id,
+                                                                      last_session['event_date'],
+                                                                      last_true_time)
+            last_session['event_date'] = event_date
+            session_id = last_session['id']
+            # TODO: preprocessing does not have async queue
+            patch_session(session_id, offset_applied)
+    return last_session
+
+
+def apply_clock_drift_correction(accessory_id, event_date, true_time_sync_before_session):
+    next_sync = get_next_sync(accessory_id, event_date)
+    offset_applied = 0
+    try:
+        if next_sync is not None:
+            event_date *= 1000  # convert to ms resolution
+            # get values for first sync after session
+            true_time_sync_after_session = next_sync['true_time']
+            local_time_sync_after_session = next_sync['local_time']
+            # get total error
+            error = local_time_sync_after_session - true_time_sync_after_session
+            # get time difference between events
+            time_elapsed_since_last_sync = event_date - true_time_sync_before_session
+            time_between_syncs = true_time_sync_after_session - true_time_sync_before_session
+            min_time = 8 * 3600 * 1000
+            if time_between_syncs > min_time and time_elapsed_since_last_sync > min_time:  # make sure enouth time has passed
+                offset_applied = round(time_elapsed_since_last_sync / time_between_syncs * error, 0)
+                event_date += offset_applied
+            else:
+                print("recently synced, do not need to update")
+            event_date = int(event_date / 1000)  # revert back to s resolution
+    except Exception as e:
+        print(e)
+    return event_date, offset_applied
+
+
+def get_next_sync(accessory_id, event_date):
+    try:
+        dynamodb_resource = boto3.resource('dynamodb').Table(os.environ['DYNAMODB_ACCESSORYSYNCLOG_TABLE_NAME'])
+        event_date_string = datetime.utcfromtimestamp(event_date).strftime("%Y-%m-%dT%H:%M:%SZ")
+        result = dynamodb_resource.query(KeyConditionExpression=Key('accessory_mac_address').eq(accessory_id.upper()) & Key('event_date').gt(event_date_string))['Items']
+        if len(result) > 0:
+            result = sorted(result, key=lambda k: k['event_date'])
+            next_sync = result[0]
+            try:
+                return {
+                    'true_time': float(next_sync.get('true_time')),
+                    'local_time': float(next_sync.get('local_time'))
+                }
+            except TypeError as e:
+                print(e)
+    except Exception as e:  # catch all exceptions
+        print(e)
+    return None
+
+
+def patch_session(session_id, offset_applied):
+    try:
+        endpoint = f"session/{session_id}"
+        preprocessing_service = Service('preprocessing', PREPROCESSING_API_VERSION)
+        preprocessing_service.call_apigateway_sync(method='PATCH',
+                                                    endpoint=endpoint,
+                                                    body={'start_time_adjustment': offset_applied}
+                                                    )
+    except Exception as e:
+        print(e)
