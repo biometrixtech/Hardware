@@ -187,13 +187,14 @@ def _save_sync_record(mac_address, event_date, body):
 
 def apply_clock_drift_correction(accessory_id, event_date, true_time_sync_before_session):
     dynamodb_resource = boto3.resource('dynamodb').Table(os.environ['DYNAMODB_ACCESSORYSYNCLOG_TABLE_NAME'])
-    result = dynamodb_resource.query(KeyConditionExpression=Key('accessory_mac_address').eq(accessory_id.upper()) & Key('event_date').gt(event_date))['Items']
+    event_date_string = datetime.utcfromtimestamp(event_date).strftime("%Y-%m-%dT%H:%M:%SZ")
+    result = dynamodb_resource.query(KeyConditionExpression=Key('accessory_mac_address').eq(accessory_id.upper()) & Key('event_date').gt(event_date_string))['Items']
     if len(result) > 0:
         event_date *= 1000
         result = sorted(result, key=lambda k: k['event_date'])
         next_sync = result[0]
-        true_time_sync_after_session = next_sync['true_time']
-        local_time_sync_after_session = next_sync['local_time']
+        true_time_sync_after_session = float(next_sync['true_time'])
+        local_time_sync_after_session = float(next_sync['local_time'])
         error = local_time_sync_after_session - true_time_sync_after_session
         time_elapsed_since_last_sync = event_date - true_time_sync_before_session
         time_between_syncs = true_time_sync_after_session - true_time_sync_before_session
