@@ -51,6 +51,8 @@ class Accessory(Entity):
                 ret['last_sync_date'] = accessory_data.get('last_sync_date')
             if accessory_data.get('clock_drift_rate') is not None:
                 ret['clock_drift_rate'] = accessory_data.get('clock_drift_rate')
+            if accessory_data.get('true_time') is not None:
+                ret['true_time'] = accessory_data.get('true_time')
         except NoSuchEntityException as e:
             print(e)
             pass
