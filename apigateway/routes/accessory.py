@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from flask import request, Blueprint
 import boto3
 from boto3.dynamodb.conditions import Key
@@ -8,6 +8,7 @@ from fathomapi.comms.service import Service
 from fathomapi.utils.decorators import require
 from fathomapi.utils.exceptions import InvalidSchemaException, NoSuchEntityException, DuplicateEntityException
 from fathomapi.utils.xray import xray_recorder
+from fathomapi.utils.formatters import format_datetime, parse_datetime
 from models.accessory import Accessory
 from models.firmware import Firmware
 from models.sensor import Sensor
@@ -135,6 +136,19 @@ def handle_accessory_sync(mac_address):
     return result
 
 
+@app.route('/<mac_address>/check_sync', methods=['POST'])
+@require.authenticated.any
+@xray_recorder.capture('routes.accessory.check_sync')
+def handle_accessory_check_sync(mac_address):
+    xray_recorder.current_subsegment().put_annotation('accessory_id', mac_address)
+    start_date_time = format_datetime(parse_datetime(request.json['start_date_time']) - timedelta(seconds=10))
+    end_date_time = format_datetime(parse_datetime(request.json['end_date_time']) + timedelta(seconds=10))
+    if sync_in_range(mac_address, start_date_time, end_date_time):
+        return {'sync_found': True}
+    else:
+        return {'sync_found': False}
+
+
 @xray_recorder.capture('routes.accessory._save_sync_record')
 def _save_sync_record(mac_address, event_date, body):
     item = {
@@ -229,7 +243,8 @@ def get_next_sync(accessory_id, event_date):
     try:
         dynamodb_resource = boto3.resource('dynamodb').Table(os.environ['DYNAMODB_ACCESSORYSYNCLOG_TABLE_NAME'])
         event_date_string = datetime.utcfromtimestamp(event_date).strftime("%Y-%m-%dT%H:%M:%SZ")
-        result = dynamodb_resource.query(KeyConditionExpression=Key('accessory_mac_address').eq(accessory_id.upper()) & Key('event_date').gt(event_date_string))['Items']
+        result = dynamodb_resource.query(KeyConditionExpression=Key('accessory_mac_address').eq(accessory_id.upper()) &\
+                                                                Key('event_date').gt(event_date_string))['Items']
         if len(result) > 0:
             result = sorted(result, key=lambda k: k['event_date'])
             next_sync = result[0]
@@ -255,3 +270,16 @@ def patch_session(session_id, offset_applied):
                                                     )
     except Exception as e:
         print(e)
+
+
+def sync_in_range(accessory_id, start_date_time, end_date_time):
+    try:
+        dynamodb_resource = boto3.resource('dynamodb').Table(os.environ['DYNAMODB_ACCESSORYSYNCLOG_TABLE_NAME'])
+        kcx = Key('accessory_mac_address').eq(accessory_id.upper()) & \
+              Key('event_date').between(start_date_time, end_date_time)
+        result = dynamodb_resource.query(KeyConditionExpression=kcx)['Items']
+        if len(result) > 0:
+            return True
+    except Exception as e:  # catch all exceptions
+        print(e)
+    return False
