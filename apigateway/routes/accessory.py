@@ -4,6 +4,7 @@ import boto3
 from boto3.dynamodb.conditions import Key
 import os
 
+from fathomapi.api.config import Config
 from fathomapi.comms.service import Service
 from fathomapi.utils.decorators import require
 from fathomapi.utils.exceptions import InvalidSchemaException, NoSuchEntityException, DuplicateEntityException
@@ -84,12 +85,13 @@ def handle_accessory_sync(mac_address):
     res = {}
 
     # event_date must be in correct format
-    try:
-        datetime.strptime(request.json['event_date'], "%Y-%m-%dT%H:%M:%SZ")
-    except ValueError:
-        raise InvalidSchemaException("event_date parameter must be in '%Y-%m-%dT%H:%M:%SZ' format")
+    # try:
+    #     format_datetime(request.json['event_date'])
+    # except ValueError:
+    #     raise InvalidSchemaException("event_date parameter must be in '%Y-%m-%dT%H:%M:%SZ' format")
 
-    request.json['accessory']['last_sync_date'] = request.json['event_date']
+    event_date = format_datetime(datetime.utcfromtimestamp(Config.get('REQUEST_TIME') / 1000))
+    request.json['accessory']['last_sync_date'] = event_date
     accessory = Accessory(mac_address)
     res['time'] = request.json.get('time', {})
     if 'local' in res['time']:
@@ -111,7 +113,7 @@ def handle_accessory_sync(mac_address):
     res['wifi'] = request.json.get('wifi', {})
 
     # Save the data in a time-rolling ddb log table
-    _save_sync_record(mac_address, request.json['event_date'], res)
+    _save_sync_record(mac_address, event_date, res)
 
     result = {}
     result['latest_firmware'] = {}
