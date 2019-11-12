@@ -144,7 +144,9 @@ def handle_accessory_sync(mac_address):
 def handle_accessory_check_sync(mac_address):
     xray_recorder.current_subsegment().put_annotation('accessory_id', mac_address)
     start_date_time = format_datetime(parse_datetime(request.json['start_date_time']) - timedelta(seconds=10))
-    end_date_time = format_datetime(parse_datetime(request.json['end_date_time']) + timedelta(seconds=10))
+    end_date_time = format_datetime(datetime.utcfromtimestamp(Config.get('REQUEST_TIME') / 1000) + timedelta(seconds=10))
+    print(start_date_time, end_date_time)
+    # end_date_time = format_datetime(parse_datetime(request.json['end_date_time']) + timedelta(seconds=10))
     if sync_in_range(mac_address, start_date_time, end_date_time):
         return {'sync_found': True}
     else:
