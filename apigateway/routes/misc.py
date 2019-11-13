@@ -1,6 +1,7 @@
 from flask import Blueprint
 from datetime import datetime
 import uuid
+from fathomapi.api.config import Config
 
 app = Blueprint('misc', __name__)
 
@@ -12,4 +13,5 @@ def handle_misc_uuid():
 
 @app.route('/time', methods=['GET'])
 def handle_misc_time():
-    return {'current_date': datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")}
+    current_date_time = datetime.utcfromtimestamp(Config.get('REQUEST_TIME') / 1000).strftime('%Y-%m-%dT%H:%M:%SZ')
+    return {'current_date': current_date_time}
