@@ -152,7 +152,7 @@ def handle_accessory_check_sync(mac_address):
     start_date_time = format_datetime(start_time)
     end_date_time = format_datetime(end_time)
     print(start_date_time, end_date_time)
-    if sync_in_range(mac_address, start_date_time, end_date_time):
+    if sync_in_range(mac_address.upper(), start_date_time, end_date_time):
         return {'sync_found': True}
     else:
         return {'sync_found': False}
