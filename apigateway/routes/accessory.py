@@ -64,7 +64,10 @@ def handle_accessory_patch(mac_address):
     xray_recorder.current_subsegment().put_annotation('accessory_id', mac_address)
     accessory = Accessory(mac_address)
     if not accessory.exists():
-        ret = accessory.create(request.json)
+        try:
+            ret = accessory.create(request.json)
+        except:
+            raise NoSuchEntityException("FathomPRO with that id is not registered.")
     else:
         ret = accessory.patch(request.json)
     return ret
