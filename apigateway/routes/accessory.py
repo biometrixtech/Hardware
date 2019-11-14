@@ -56,6 +56,11 @@ def handle_accessory_get(mac_address):
 @require.authenticated.any
 @xray_recorder.capture('routes.accessory.patch')
 def handle_accessory_patch(mac_address):
+    # TODO: Remove this
+    if mac_address.upper() == "3C:A0:67:57:26:9A":
+        mac_address = "3C:A0:67:57:26:99"
+    elif mac_address.upper() == "3C:A0:67:57:2B:F8":
+        mac_address = "3C:A0:67:57:2B:F7"
     xray_recorder.current_subsegment().put_annotation('accessory_id', mac_address)
     accessory = Accessory(mac_address)
     if not accessory.exists():
