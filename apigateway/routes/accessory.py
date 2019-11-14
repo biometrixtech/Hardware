@@ -126,7 +126,7 @@ def handle_accessory_sync(mac_address):
 
     user_id = res['accessory']['owner_id']
     if user_id is not None:
-        if res['accessory']['battery_level'] < .1:
+        if res['accessory']['battery_level'] < .3:
             notify_user_of_low_battery(user_id)
         try:
             result['last_session'] = get_last_session(user_id)
