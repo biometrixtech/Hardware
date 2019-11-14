@@ -145,6 +145,11 @@ def handle_accessory_sync(mac_address):
 @require.authenticated.any
 @xray_recorder.capture('routes.accessory.check_sync')
 def handle_accessory_check_sync(mac_address):
+    # TODO: Remove this
+    if mac_address.upper() == "3C:A0:67:57:26:9A":
+        mac_address = "3C:A0:67:57:26:99"
+    elif mac_address.upper() == "3C:A0:67:57:2B:F8":
+        mac_address = "3C:A0:67:57:2B:F7"
     xray_recorder.current_subsegment().put_annotation('accessory_id', mac_address)
     seconds_elapsed = request.json['seconds_elapsed']
     end_time = datetime.utcfromtimestamp(Config.get('REQUEST_TIME') / 1000) + timedelta(seconds=10)
