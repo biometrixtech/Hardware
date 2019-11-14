@@ -17,6 +17,7 @@ from models.accessory_data import AccessoryData
 
 app = Blueprint('accessory', __name__)
 PREPROCESSING_API_VERSION = '2_0'
+USERS_API_VERSION = '2_4'
 
 
 @app.route('/<mac_address>/register', methods=['POST'])
@@ -125,6 +126,8 @@ def handle_accessory_sync(mac_address):
 
     user_id = res['accessory']['owner_id']
     if user_id is not None:
+        if res['accessory']['battery_level'] < .1:
+            notify_user_of_low_battery(user_id)
         try:
             result['last_session'] = get_last_session(user_id)
 
@@ -287,3 +290,12 @@ def sync_in_range(accessory_id, start_date_time, end_date_time):
     except Exception as e:  # catch all exceptions
         print(e)
     return False
+
+
+def notify_user_of_low_battery(user_id):
+    users_service = Service('users', USERS_API_VERSION)
+    body = {"message": "Your FathomPRO kit is about to die!!!! Go charge it now!!!!!",
+            "call_to_action": "VIEW_PLAN"}
+    users_service.call_apigateway_async(method='POST',
+                                        endpoint=f'/user/{user_id}/notify',
+                                        body=body)
