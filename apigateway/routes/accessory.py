@@ -126,7 +126,7 @@ def handle_accessory_sync(mac_address):
 
     user_id = res['accessory']['owner_id']
     if user_id is not None:
-        if res['accessory']['battery_level'] < .3:
+        if 'battery_level' in res['accessory'] and res['accessory']['battery_level'] < .3:
             notify_user_of_low_battery(user_id)
         try:
             result['last_session'] = get_last_session(user_id)
@@ -146,10 +146,12 @@ def handle_accessory_sync(mac_address):
 @xray_recorder.capture('routes.accessory.check_sync')
 def handle_accessory_check_sync(mac_address):
     xray_recorder.current_subsegment().put_annotation('accessory_id', mac_address)
-    start_date_time = format_datetime(parse_datetime(request.json['start_date_time']) - timedelta(seconds=10))
-    end_date_time = format_datetime(datetime.utcfromtimestamp(Config.get('REQUEST_TIME') / 1000) + timedelta(seconds=10))
+    seconds_elapsed = request.json['seconds_elapsed']
+    end_time = datetime.utcfromtimestamp(Config.get('REQUEST_TIME') / 1000) + timedelta(seconds=10)
+    start_time = end_time - timedelta(seconds=seconds_elapsed + 20)
+    start_date_time = format_datetime(start_time)
+    end_date_time = format_datetime(end_time)
     print(start_date_time, end_date_time)
-    # end_date_time = format_datetime(parse_datetime(request.json['end_date_time']) + timedelta(seconds=10))
     if sync_in_range(mac_address, start_date_time, end_date_time):
         return {'sync_found': True}
     else:
