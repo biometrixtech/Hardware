@@ -310,7 +310,8 @@ def sync_in_range(accessory_id, start_date_time, end_date_time):
 def notify_user_of_low_battery(user_id):
     users_service = Service('users', USERS_API_VERSION)
     body = {"message": "Your FathomPRO kit is about to die!!!! Go charge it now!!!!!",
-            "call_to_action": "VIEW_PLAN"}
+            "call_to_action": "VIEW_PLAN",
+            "expire_in": 15 * 60}  # expire in 15 mins
     users_service.call_apigateway_async(method='POST',
                                         endpoint=f'/user/{user_id}/notify',
                                         body=body)
