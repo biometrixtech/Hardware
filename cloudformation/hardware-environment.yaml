@@ -310,6 +310,10 @@ Resources:
                         Resource:
                           - { "Fn::GetAtt": [ "FirmwareS3Bucket", "Arn" ] }
                           - { "Fn::Sub": "${FirmwareS3Bucket.Arn}/*" }
+                      - Action:
+                          - "sqs:SendMessage"
+                        Effect: "Allow"
+                        Resource: "*"
             RoleName: { "Fn::Sub": "hardware-${Environment}-apigateway-${AWS::Region}" }
 
     ApiGatewayLambda:
