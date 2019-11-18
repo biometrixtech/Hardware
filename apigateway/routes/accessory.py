@@ -129,8 +129,11 @@ def handle_accessory_sync(mac_address):
 
     user_id = res['accessory']['owner_id']
     if user_id is not None:
-        if 'battery_level' in res['accessory'] and res['accessory']['battery_level'] < .3:
-            notify_user_of_low_battery(user_id)
+        # if 'battery_level' in res['accessory'] and res['accessory']['battery_level'] < .3:
+        #     try:
+        #         notify_user_of_low_battery(user_id)
+        #     except:
+        #         print('Error in notifying user')
         try:
             result['last_session'] = get_last_session(user_id)
 
@@ -300,7 +303,7 @@ def notify_user_of_low_battery(user_id):
     users_service = Service('users', USERS_API_VERSION)
     body = {"message": "Your FathomPRO kit is about to die!!!! Go charge it now!!!!!",
             "call_to_action": "VIEW_PLAN",
-            "expire_in": 15 * 60}  # expire in 15 mins
+            "expire_in": 2 * 60 * 60}  # expire in 2 hours
     users_service.call_apigateway_async(method='POST',
                                         endpoint=f'/user/{user_id}/notify',
                                         body=body)
