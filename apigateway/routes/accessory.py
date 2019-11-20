@@ -301,7 +301,7 @@ def sync_in_range(accessory_id, start_date_time, end_date_time):
 
 def notify_user_of_low_battery(user_id):
     users_service = Service('users', USERS_API_VERSION)
-    body = {"message": "Your Fathom PRO kit battery is low. You'll need to plug your kit in to charge soon. Use your micro-USB cable to charge your PRO Kit. Full-recharge takes 3 hours.",
+    body = {"message": "Your Fathom PRO kit battery is low.\nYou'll need to plug your kit in to charge soon. Use your micro-USB cable to charge your PRO Kit. Full-recharge takes 3 hours.",
             "call_to_action": "VIEW_PLAN",
             "expire_in": 2 * 60 * 60}  # expire in 2 hours
     users_service.call_apigateway_async(method='POST',
