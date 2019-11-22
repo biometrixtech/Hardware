@@ -1,13 +1,15 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from flask import request, Blueprint
 import boto3
 from boto3.dynamodb.conditions import Key
 import os
 
+from fathomapi.api.config import Config
 from fathomapi.comms.service import Service
 from fathomapi.utils.decorators import require
 from fathomapi.utils.exceptions import InvalidSchemaException, NoSuchEntityException, DuplicateEntityException
 from fathomapi.utils.xray import xray_recorder
+from fathomapi.utils.formatters import format_datetime, parse_datetime
 from models.accessory import Accessory
 from models.firmware import Firmware
 from models.sensor import Sensor
@@ -15,6 +17,7 @@ from models.accessory_data import AccessoryData
 
 app = Blueprint('accessory', __name__)
 PREPROCESSING_API_VERSION = '2_0'
+USERS_API_VERSION = '2_4'
 
 
 @app.route('/<mac_address>/register', methods=['POST'])
@@ -56,7 +59,10 @@ def handle_accessory_patch(mac_address):
     xray_recorder.current_subsegment().put_annotation('accessory_id', mac_address)
     accessory = Accessory(mac_address)
     if not accessory.exists():
-        ret = accessory.create(request.json)
+        try:
+            ret = accessory.create(request.json)
+        except:
+            raise NoSuchEntityException("FathomPRO with that id is not registered.")
     else:
         ret = accessory.patch(request.json)
     return ret
@@ -83,12 +89,13 @@ def handle_accessory_sync(mac_address):
     res = {}
 
     # event_date must be in correct format
-    try:
-        datetime.strptime(request.json['event_date'], "%Y-%m-%dT%H:%M:%SZ")
-    except ValueError:
-        raise InvalidSchemaException("event_date parameter must be in '%Y-%m-%dT%H:%M:%SZ' format")
+    # try:
+    #     format_datetime(request.json['event_date'])
+    # except ValueError:
+    #     raise InvalidSchemaException("event_date parameter must be in '%Y-%m-%dT%H:%M:%SZ' format")
 
-    request.json['accessory']['last_sync_date'] = request.json['event_date']
+    event_date = format_datetime(datetime.utcfromtimestamp(Config.get('REQUEST_TIME') / 1000))
+    request.json['accessory']['last_sync_date'] = event_date
     accessory = Accessory(mac_address)
     res['time'] = request.json.get('time', {})
     if 'local' in res['time']:
@@ -110,7 +117,7 @@ def handle_accessory_sync(mac_address):
     res['wifi'] = request.json.get('wifi', {})
 
     # Save the data in a time-rolling ddb log table
-    _save_sync_record(mac_address, request.json['event_date'], res)
+    _save_sync_record(mac_address, event_date, res)
 
     result = {}
     result['latest_firmware'] = {}
@@ -122,6 +129,11 @@ def handle_accessory_sync(mac_address):
 
     user_id = res['accessory']['owner_id']
     if user_id is not None:
+        if 'battery_level' in res['accessory'] and res['accessory']['battery_level'] < .3:
+            try:
+                notify_user_of_low_battery(user_id)
+            except:
+                print('Error in notifying user')
         try:
             result['last_session'] = get_last_session(user_id)
 
@@ -133,6 +145,22 @@ def handle_accessory_sync(mac_address):
     else:
         result['last_session'] = None
     return result
+
+
+@app.route('/<mac_address>/check_sync', methods=['POST'])
+@require.authenticated.any
+@xray_recorder.capture('routes.accessory.check_sync')
+def handle_accessory_check_sync(mac_address):
+    xray_recorder.current_subsegment().put_annotation('accessory_id', mac_address)
+    seconds_elapsed = request.json['seconds_elapsed']
+    end_time = datetime.utcfromtimestamp(Config.get('REQUEST_TIME') / 1000) + timedelta(seconds=10)
+    start_time = end_time - timedelta(seconds=seconds_elapsed + 20)
+    start_date_time = format_datetime(start_time)
+    end_date_time = format_datetime(end_time)
+    if sync_in_range(mac_address.upper(), start_date_time, end_date_time):
+        return {'sync_found': True}
+    else:
+        return {'sync_found': False}
 
 
 @xray_recorder.capture('routes.accessory._save_sync_record')
@@ -229,7 +257,8 @@ def get_next_sync(accessory_id, event_date):
     try:
         dynamodb_resource = boto3.resource('dynamodb').Table(os.environ['DYNAMODB_ACCESSORYSYNCLOG_TABLE_NAME'])
         event_date_string = datetime.utcfromtimestamp(event_date).strftime("%Y-%m-%dT%H:%M:%SZ")
-        result = dynamodb_resource.query(KeyConditionExpression=Key('accessory_mac_address').eq(accessory_id.upper()) & Key('event_date').gt(event_date_string))['Items']
+        result = dynamodb_resource.query(KeyConditionExpression=Key('accessory_mac_address').eq(accessory_id.upper()) &\
+                                                                Key('event_date').gt(event_date_string))['Items']
         if len(result) > 0:
             result = sorted(result, key=lambda k: k['event_date'])
             next_sync = result[0]
@@ -255,3 +284,26 @@ def patch_session(session_id, offset_applied):
                                                     )
     except Exception as e:
         print(e)
+
+
+def sync_in_range(accessory_id, start_date_time, end_date_time):
+    try:
+        dynamodb_resource = boto3.resource('dynamodb').Table(os.environ['DYNAMODB_ACCESSORYSYNCLOG_TABLE_NAME'])
+        kcx = Key('accessory_mac_address').eq(accessory_id.upper()) & \
+              Key('event_date').between(start_date_time, end_date_time)
+        result = dynamodb_resource.query(KeyConditionExpression=kcx)['Items']
+        if len(result) > 0:
+            return True
+    except Exception as e:  # catch all exceptions
+        print(e)
+    return False
+
+
+def notify_user_of_low_battery(user_id):
+    users_service = Service('users', USERS_API_VERSION)
+    body = {"message": "Your Fathom PRO kit battery is low.\nYou'll need to plug your kit in to charge soon. Use your micro-USB cable to charge your PRO Kit. Full-recharge takes 3 hours.",
+            "call_to_action": "VIEW_PLAN",
+            "expire_in": 2 * 60 * 60}  # expire in 2 hours
+    users_service.call_apigateway_async(method='POST',
+                                        endpoint=f'/user/{user_id}/notify',
+                                        body=body)
